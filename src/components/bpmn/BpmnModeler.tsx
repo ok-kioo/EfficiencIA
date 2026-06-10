@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
 import type BpmnModelerLib from "bpmn-js/lib/Modeler";
 
+import { customRulesModule } from "../../lib/bpmn-validation";
+
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 import "bpmn-js/dist/assets/bpmn-js.css";
+
 
 interface BpmnModelerProps {
   xml: string;
@@ -47,9 +50,13 @@ export function BpmnModeler({ xml, onChange, onModelerReady }: BpmnModelerProps)
       const { default: BpmnModelerCtor } = await import("bpmn-js/lib/Modeler");
       if (destroyed || !containerRef.current) return;
 
-      modeler = new BpmnModelerCtor({ container: containerRef.current });
+      modeler = new BpmnModelerCtor({
+        container: containerRef.current,
+        additionalModules: [customRulesModule],
+      });
       modelerRef.current = modeler;
       onModelerReady?.(modeler);
+
 
       modeler.on("commandStack.changed", async () => {
         const result = await modeler!.saveXML({ format: true });
