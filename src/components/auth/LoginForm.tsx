@@ -7,17 +7,11 @@ import type { LoginRequest } from "../../@types/user";
 export function LoginForm() {
   const navigate = useNavigate();
   const { login, isLoading, error } = useAuth();
-  const [formData, setFormData] = useState<LoginRequest>({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState<LoginRequest>({ email: "", password: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,19 +20,18 @@ export function LoginForm() {
       await login(formData);
       navigate({ to: "/" });
     } catch {
-      // Erro já é tratado pelo contexto
+      /* erro tratado no contexto */
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Email */}
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="email" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Email
         </label>
         <div className="relative">
-          <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
+          <Mail className="absolute left-3 top-2.5 text-muted-foreground" size={16} strokeWidth={1.75} />
           <input
             id="email"
             name="email"
@@ -47,18 +40,17 @@ export function LoginForm() {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
       </div>
 
-      {/* Senha */}
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="password" className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           Senha
         </label>
         <div className="relative">
-          <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
+          <Lock className="absolute left-3 top-2.5 text-muted-foreground" size={16} strokeWidth={1.75} />
           <input
             id="password"
             name="password"
@@ -67,39 +59,36 @@ export function LoginForm() {
             value={formData.password}
             onChange={handleChange}
             required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+            className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
       </div>
 
-      {/* Erro */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+          <AlertCircle className="mt-0.5 shrink-0 text-destructive" size={14} strokeWidth={1.75} />
+          <p className="text-xs text-destructive">{error}</p>
         </div>
       )}
 
-      {/* Botão de Login */}
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition flex items-center justify-center gap-2"
+        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition hover:bg-primary-deep disabled:opacity-50"
       >
         {isLoading ? (
           <>
-            <Loader size={20} className="animate-spin" />
-            Entrando...
+            <Loader size={14} className="animate-spin" />
+            Entrando…
           </>
         ) : (
           "Entrar"
         )}
       </button>
 
-      {/* Link para Cadastro */}
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-xs text-muted-foreground">
         Não tem uma conta?{" "}
-        <Link to="/signup" className="text-blue-600 hover:underline font-medium">
+        <Link to="/signup" className="font-medium text-primary hover:underline">
           Cadastre-se
         </Link>
       </p>

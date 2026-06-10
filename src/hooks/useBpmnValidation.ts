@@ -13,53 +13,53 @@ interface UseBpmnValidationParams {
 
 export function useBpmnValidation({ modeler }: UseBpmnValidationParams) {
   const [violations, setViolations] = useState<Violation[]>([]);
-  const overlayIdsRef = useRef<string[]>([]);
+  const markedRef = useRef<Map<string, string>>(new Map());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!modeler) return;
     const eventBus: Any = modeler.get("eventBus");
-    const overlays: Any = modeler.get("overlays");
+    const canvas: Any = modeler.get("canvas");
+    const elementRegistry: Any = modeler.get("elementRegistry");
 
-    function clearOverlays() {
-      for (const id of overlayIdsRef.current) {
-        try {
-          overlays.remove(id);
-        } catch {
-          /* noop */
+    function clearMarkers() {
+      for (const [elementId, cls] of markedRef.current.entries()) {
+        const el = elementRegistry.get(elementId);
+        if (el) {
+          try {
+            canvas.removeMarker(el, cls);
+          } catch {
+            /* element removed */
+          }
         }
       }
-      overlayIdsRef.current = [];
+      markedRef.current.clear();
     }
 
     function runValidation() {
       const result = validate(modeler);
       setViolations(result);
 
-      clearOverlays();
-      // Group by elementId to avoid stacking overlays
-      const byElement = new Map<string, Violation[]>();
+      clearMarkers();
+      // Pick worst severity per element
+      const worst = new Map<string, "error" | "warning">();
       for (const v of result) {
         if (!v.elementId) continue;
-        const list = byElement.get(v.elementId) || [];
-        list.push(v);
-        byElement.set(v.elementId, list);
+        if (v.severity === "error") {
+          worst.set(v.elementId, "error");
+        } else if (v.severity === "warning" && worst.get(v.elementId) !== "error") {
+          worst.set(v.elementId, "warning");
+        }
       }
-      const elementRegistry: Any = modeler!.get("elementRegistry");
-      for (const [elementId, vs] of byElement.entries()) {
+      for (const [elementId, severity] of worst.entries()) {
         const el = elementRegistry.get(elementId);
         if (!el) continue;
-        const hasError = vs.some((v) => v.severity === "error");
-        const color = hasError ? "#dc2626" : "#f59e0b";
-        const tooltip = vs.map((v) => v.message).join("\n");
+        const cls = severity === "error" ? "validation-error" : "validation-warning";
         try {
-          const id = overlays.add(elementId, "validation", {
-            position: { top: -8, right: -8 },
-            html: `<div title="${tooltip.replace(/"/g, "&quot;")}" style="width:14px;height:14px;border-radius:9999px;background:${color};border:2px solid white;box-shadow:0 0 0 1px ${color};"></div>`,
-          });
-          overlayIdsRef.current.push(id);
+          canvas.addMarker(el, cls);
+          markedRef.current.set(elementId, cls);
         } catch {
-          /* element may have been removed */
+          /* noop */
         }
       }
     }
@@ -77,7 +77,6 @@ export function useBpmnValidation({ modeler }: UseBpmnValidationParams) {
     eventBus.on("import.done", scheduleValidation);
     eventBus.on("validation.blocked", onBlocked);
 
-    // Initial run
     scheduleValidation();
 
     return () => {
@@ -85,7 +84,7 @@ export function useBpmnValidation({ modeler }: UseBpmnValidationParams) {
       eventBus.off("import.done", scheduleValidation);
       eventBus.off("validation.blocked", onBlocked);
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      clearOverlays();
+      clearMarkers();
     };
   }, [modeler]);
 

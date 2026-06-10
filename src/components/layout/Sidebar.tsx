@@ -17,13 +17,15 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <aside className="hidden min-h-screen w-64 border-r border-slate-200 bg-white p-4 md:block">
-      <div className="mb-8">
-        <h1 className="text-xl font-bold text-slate-900">EfficiencIA</h1>
-        <p className="text-sm text-slate-500">Modelagem organizacional</p>
+    <aside className="hidden min-h-screen w-[220px] shrink-0 border-r border-sidebar-border bg-sidebar px-3 py-5 md:block">
+      <div className="mb-6 px-2">
+        <h1 className="font-display text-base font-semibold tracking-tight text-foreground">
+          EfficiencIA
+        </h1>
+        <p className="text-[11px] text-muted-foreground">Modelagem organizacional</p>
       </div>
 
-      <nav className="space-y-2">
+      <nav className="space-y-0.5">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.path;
@@ -32,13 +34,16 @@ export function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+              className={`group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition ${
                 active
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  ? "bg-sidebar-accent text-foreground"
+                  : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
               }`}
             >
-              <Icon size={18} />
+              {active && (
+                <span className="absolute left-0 top-1.5 h-[calc(100%-12px)] w-0.5 rounded-r bg-accent" />
+              )}
+              <Icon size={15} strokeWidth={1.75} />
               {item.label}
             </Link>
           );
