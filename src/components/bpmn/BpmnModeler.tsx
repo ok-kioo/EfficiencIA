@@ -12,6 +12,7 @@ interface BpmnModelerProps {
   xml: string;
   onChange: (xml: string) => void;
   onModelerReady?: (modeler: BpmnModelerLib) => void;
+  validationSeverity?: "error" | "warning" | null;
 }
 
 export const defaultBpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -34,7 +35,7 @@ export const defaultBpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
 
-export function BpmnModeler({ xml, onChange, onModelerReady }: BpmnModelerProps) {
+export function BpmnModeler({ xml, onChange, onModelerReady, validationSeverity = null }: BpmnModelerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const modelerRef = useRef<BpmnModelerLib | null>(null);
   const importedXmlRef = useRef<string>("");
@@ -100,7 +101,10 @@ export function BpmnModeler({ xml, onChange, onModelerReady }: BpmnModelerProps)
   }, [xml]);
 
   return (
-    <div className="h-[calc(100vh-230px)] min-h-[520px] overflow-hidden rounded-xl border border-border bg-card">
+    <div
+      className="bpmn-canvas-frame h-[calc(100vh-230px)] min-h-[520px] overflow-hidden rounded-xl bg-card"
+      data-validation={validationSeverity ?? undefined}
+    >
       <div ref={containerRef} className="h-full w-full" />
     </div>
   );
