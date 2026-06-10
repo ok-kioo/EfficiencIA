@@ -6,19 +6,17 @@ import { BpmnModeler, defaultBpmnXml } from "../components/bpmn/BpmnModeler";
 import { BpmnToolbar } from "../components/bpmn/BpmnToolBar";
 import { ProcessDataPanel } from "../components/process/ProcessDataPanel";
 import { ValidationPanel } from "../components/bpmn/ValidationPanel";
-import type { ProcessActivity, ProcessModel } from "../@types/processs";
+import type { ProcessActivity } from "../@types/processs";
 import {
   extractActivitiesFromBpmn,
   mergeExtractedActivities,
 } from "../utils/bpmnUtils";
 import { downloadFile } from "../utils/downloadFile";
-import { saveProcessLocally } from "../services/processService";
 import { loadDraft } from "../lib/modeler/autosave";
 import { useModelerAutosave } from "../hooks/useModelerAutosave";
 import { useBpmnValidation } from "../hooks/useBpmnValidation";
 
 export function ModelerPage() {
-  // Restore from localStorage on first render (client-only).
   const initial = useMemo(() => {
     if (typeof window === "undefined") {
       return {
@@ -90,30 +88,6 @@ export function ModelerPage() {
     downloadFile(`${processName}.bpmn`, result.xml, "application/xml");
   }
 
-  async function handleSave() {
-    const m = modelerRef.current;
-    if (!m) return;
-    const result = await m.saveXML({ format: true });
-    if (!result.xml) return;
-
-    const errorCount = violations.filter((v) => v.severity === "error").length;
-    if (errorCount > 0) {
-      const ok = window.confirm(
-        `O diagrama possui ${errorCount} erro(s) de validação. Deseja salvar mesmo assim?`
-      );
-      if (!ok) return;
-    }
-
-    const process: ProcessModel = {
-      name: processName,
-      bpmnXml: result.xml,
-      activities,
-    };
-
-    saveProcessLocally(process);
-    toast.success("Processo salvo localmente.");
-  }
-
   function handleBpmnChange(xml: string) {
     setBpmnXml(xml);
   }
@@ -133,30 +107,32 @@ export function ModelerPage() {
       : status === "error"
         ? "Falha ao salvar automaticamente"
         : lastSavedAt
-          ? `Salvo automaticamente às ${new Date(lastSavedAt).toLocaleTimeString()}`
+          ? `Salvo às ${new Date(lastSavedAt).toLocaleTimeString()}`
           : "Autosave ativo";
 
   return (
     <div>
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Modelagem do processo</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Modelagem do processo
+          </h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Desenhe o fluxo BPMN e complemente cada atividade com dados operacionais.
           </p>
-          <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
+          <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground tabular">
             <span
               className={`inline-flex items-center gap-1.5 ${
-                status === "error" ? "text-red-600" : ""
+                status === "error" ? "text-destructive" : ""
               }`}
             >
               <span
-                className={`inline-block h-2 w-2 rounded-full ${
+                className={`inline-block h-1.5 w-1.5 rounded-full ${
                   status === "saving"
-                    ? "bg-amber-400 animate-pulse"
+                    ? "bg-accent animate-pulse"
                     : status === "error"
-                      ? "bg-red-500"
-                      : "bg-emerald-500"
+                      ? "bg-destructive"
+                      : "bg-primary"
                 }`}
               />
               {autosaveLabel}
@@ -165,7 +141,7 @@ export function ModelerPage() {
               <button
                 type="button"
                 onClick={handleDiscardDraft}
-                className="text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline"
+                className="text-[11px] font-medium text-muted-foreground underline-offset-2 transition hover:text-foreground hover:underline"
               >
                 Descartar rascunho
               </button>
@@ -174,32 +150,32 @@ export function ModelerPage() {
         </div>
 
         <div className="w-full lg:w-80">
-          <label className="mb-1 block text-xs font-medium text-slate-500">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Nome do processo
           </label>
           <input
             value={processName}
             onChange={(event) => setProcessName(event.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm outline-none focus:border-slate-900"
+            className="h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
       </div>
 
-      <BpmnToolbar onImport={handleImport} onExport={handleExport} onSave={handleSave} />
+      <BpmnToolbar onImport={handleImport} onExport={handleExport} />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_420px]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_400px]">
         <BpmnModeler
           xml={bpmnXml}
           onChange={handleBpmnChange}
           onModelerReady={handleModelerReady}
         />
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5">
+          <ValidationPanel violations={violations} onFocus={focusElement} />
           <ProcessDataPanel
             activities={activities}
             onActivitiesChange={setActivities}
           />
-          <ValidationPanel violations={violations} onFocus={focusElement} />
         </div>
       </div>
     </div>

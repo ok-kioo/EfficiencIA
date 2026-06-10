@@ -20,12 +20,8 @@ export function SignupForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Validações em tempo real
     if (name === "password") {
       setValidations((prev) => ({
         ...prev,
@@ -33,155 +29,100 @@ export function SignupForm() {
         passwordMatch: value === formData.confirmPassword,
       }));
     }
-
     if (name === "confirmPassword") {
-      setValidations((prev) => ({
-        ...prev,
-        passwordMatch: value === formData.password,
-      }));
+      setValidations((prev) => ({ ...prev, passwordMatch: value === formData.password }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       await signup(formData);
       navigate({ to: "/" });
     } catch {
+      /* erro tratado no contexto */
     }
   };
 
   const isFormValid =
-    formData.name &&
-    formData.email &&
-    formData.password &&
-    formData.confirmPassword;
+    formData.name && formData.email && formData.password && formData.confirmPassword;
+
+  const inputClass =
+    "h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-1 focus:ring-primary";
+  const labelClass =
+    "mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-          Nome Completo
-        </label>
+        <label htmlFor="name" className={labelClass}>Nome completo</label>
         <div className="relative">
-          <User className="absolute left-3 top-3 text-gray-400" size={20} />
-          <input
-            id="name"
-            name="name"
-            type="text"
-            placeholder="Seu nome"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          />
+          <User className="absolute left-3 top-2.5 text-muted-foreground" size={16} strokeWidth={1.75} />
+          <input id="name" name="name" type="text" placeholder="Seu nome" value={formData.name} onChange={handleChange} required className={inputClass} />
         </div>
       </div>
 
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-          Email
-        </label>
+        <label htmlFor="email" className={labelClass}>Email</label>
         <div className="relative">
-          <Mail className="absolute left-3 top-3 text-gray-400" size={20} />
-          <input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="seu@email.com"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          />
+          <Mail className="absolute left-3 top-2.5 text-muted-foreground" size={16} strokeWidth={1.75} />
+          <input id="email" name="email" type="email" placeholder="seu@email.com" value={formData.email} onChange={handleChange} required className={inputClass} />
         </div>
       </div>
 
-      {/* Senha */}
       <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-          Senha
-        </label>
+        <label htmlFor="password" className={labelClass}>Senha</label>
         <div className="relative">
-          <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
-          <input
-            id="password"
-            name="password"
-            type="password"
-            placeholder="••••••••"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          />
+          <Lock className="absolute left-3 top-2.5 text-muted-foreground" size={16} strokeWidth={1.75} />
+          <input id="password" name="password" type="password" placeholder="••••••••" value={formData.password} onChange={handleChange} required className={inputClass} />
         </div>
-        <div className="mt-2 flex items-center gap-2 text-sm">
-          {validations.passwordLength ? (
-            <CheckCircle size={16} className="text-green-600" />
-          ) : (
-            <CheckCircle size={16} className="text-gray-300" />
-          )}
-          <span className={validations.passwordLength ? "text-green-600" : "text-gray-600"}>
+        <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+          <CheckCircle size={12} className={validations.passwordLength ? "text-primary" : "text-muted-foreground/40"} />
+          <span className={validations.passwordLength ? "text-primary" : "text-muted-foreground"}>
             Mínimo 8 caracteres
           </span>
         </div>
       </div>
 
       <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-          Confirmar Senha
-        </label>
+        <label htmlFor="confirmPassword" className={labelClass}>Confirmar senha</label>
         <div className="relative">
-          <Lock className="absolute left-3 top-3 text-gray-400" size={20} />
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-          />
+          <Lock className="absolute left-3 top-2.5 text-muted-foreground" size={16} strokeWidth={1.75} />
+          <input id="confirmPassword" name="confirmPassword" type="password" placeholder="••••••••" value={formData.confirmPassword} onChange={handleChange} required className={inputClass} />
         </div>
-        <div className="mt-2 flex items-center gap-2 text-sm">
-          {formData.confirmPassword && validations.passwordMatch ? (
-            <CheckCircle size={16} className="text-green-600" />
-          ) : (
-            <CheckCircle size={16} className="text-gray-300" />
-          )}
-          <span className={validations.passwordMatch ? "text-green-600" : "text-gray-600"}>
+        <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+          <CheckCircle size={12} className={formData.confirmPassword && validations.passwordMatch ? "text-primary" : "text-muted-foreground/40"} />
+          <span className={validations.passwordMatch ? "text-primary" : "text-muted-foreground"}>
             Senhas precisam ser iguais
           </span>
         </div>
       </div>
 
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+          <AlertCircle className="mt-0.5 shrink-0 text-destructive" size={14} strokeWidth={1.75} />
+          <p className="text-xs text-destructive">{error}</p>
         </div>
       )}
 
       <button
         type="submit"
         disabled={isLoading || !isFormValid}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 rounded-lg transition flex items-center justify-center gap-2"
+        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition hover:bg-primary-deep disabled:opacity-50"
       >
         {isLoading ? (
           <>
-            <Loader size={20} className="animate-spin" />
-            Cadastrando...
+            <Loader size={14} className="animate-spin" />
+            Cadastrando…
           </>
         ) : (
           "Cadastrar"
         )}
       </button>
 
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-xs text-muted-foreground">
         Já tem uma conta?{" "}
-        <Link to="/login" className="text-blue-600 hover:underline font-medium">
+        <Link to="/login" className="font-medium text-primary hover:underline">
           Entre aqui
         </Link>
       </p>

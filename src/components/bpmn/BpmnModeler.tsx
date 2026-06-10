@@ -100,8 +100,9 @@ export function BpmnModeler({ xml, onChange, onModelerReady }: BpmnModelerProps)
   }, [xml]);
 
   return (
-    <div className="h-[calc(100vh-230px)] min-h-[520px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="h-[calc(100vh-230px)] min-h-[520px] overflow-hidden rounded-xl border border-border bg-card">
       <div ref={containerRef} className="h-full w-full" />
     </div>
   );
 }
+

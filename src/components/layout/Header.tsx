@@ -12,33 +12,29 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
+    <header className="flex h-[52px] items-center justify-between border-b border-border bg-background px-5">
       <div>
-        <h2 className="text-sm font-medium text-slate-500">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           Plataforma de exploração de cenários organizacionais
-        </h2>
+        </p>
       </div>
 
-      <div className="flex items-center gap-4">
-        <button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
-          Novo processo
-        </button>
-
-        <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-          <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-100">
-            <User size={18} className="text-blue-600" />
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 border-l border-border pl-4">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <User size={14} strokeWidth={1.75} />
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-slate-900">{user?.name}</span>
-            <span className="text-xs text-slate-500">{user?.email}</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[12px] font-medium text-foreground">{user?.name}</span>
+            <span className="text-[10px] text-muted-foreground">{user?.email}</span>
           </div>
 
           <button
             onClick={handleLogout}
-            className="ml-4 p-2 rounded-lg hover:bg-slate-100 transition text-slate-600 hover:text-red-600"
+            className="ml-2 rounded-md p-1.5 text-muted-foreground transition hover:bg-muted hover:text-destructive"
             title="Sair"
           >
-            <LogOut size={20} />
+            <LogOut size={15} strokeWidth={1.75} />
           </button>
         </div>
       </div>
