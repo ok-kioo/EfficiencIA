@@ -24,7 +24,7 @@ export function LoginForm() {
     e.preventDefault();
     try {
       await login(formData);
-      navigate("/");
+      navigate({ to: "/" });
     } catch {
       // Erro já é tratado pelo contexto
     }

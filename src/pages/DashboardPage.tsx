@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 import { BarChart3, GitBranch, WandSparkles } from "lucide-react";
 
 export function DashboardPage() {

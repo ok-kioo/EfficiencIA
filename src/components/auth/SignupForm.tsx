@@ -47,7 +47,7 @@ export function SignupForm() {
 
     try {
       await signup(formData);
-      navigate("/");
+      navigate({ to: "/" });
     } catch {
     }
   };
