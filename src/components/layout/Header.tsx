@@ -1,6 +1,6 @@
 import { LogOut, User } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -8,7 +8,7 @@ export function Header() {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    navigate({ to: "/login" });
   };
 
   return (
@@ -24,7 +24,6 @@ export function Header() {
           Novo processo
         </button>
 
-        {/* User Info */}
         <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
           <div className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-100">
             <User size={18} className="text-blue-600" />
@@ -34,7 +33,6 @@ export function Header() {
             <span className="text-xs text-slate-500">{user?.email}</span>
           </div>
 
-          {/* Logout Button */}
           <button
             onClick={handleLogout}
             className="ml-4 p-2 rounded-lg hover:bg-slate-100 transition text-slate-600 hover:text-red-600"

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   GitBranch,
@@ -7,44 +7,26 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  {
-    label: "Dashboard",
-    path: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Modelagem",
-    path: "/modeler",
-    icon: GitBranch,
-  },
-  {
-    label: "Análise",
-    path: "/analysis",
-    icon: BarChart3,
-  },
-  {
-    label: "Cenários",
-    path: "/scenarios",
-    icon: WandSparkles,
-  },
-];
+  { label: "Dashboard", path: "/", icon: LayoutDashboard },
+  { label: "Modelagem", path: "/modeler", icon: GitBranch },
+  { label: "Análise", path: "/analysis", icon: BarChart3 },
+  { label: "Cenários", path: "/scenarios", icon: WandSparkles },
+] as const;
 
 export function Sidebar() {
-  const location = useLocation();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
     <aside className="hidden min-h-screen w-64 border-r border-slate-200 bg-white p-4 md:block">
       <div className="mb-8">
         <h1 className="text-xl font-bold text-slate-900">EfficiencIA</h1>
-        <p className="text-sm text-slate-500">
-          Modelagem organizacional
-        </p>
+        <p className="text-sm text-slate-500">Modelagem organizacional</p>
       </div>
 
       <nav className="space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const active = location.pathname === item.path;
+          const active = pathname === item.path;
 
           return (
             <Link

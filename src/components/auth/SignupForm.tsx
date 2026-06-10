@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { User, Mail, Lock, AlertCircle, CheckCircle, Loader } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import type { SignupRequest } from "../../@types/user";
