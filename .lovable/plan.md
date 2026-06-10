@@ -1,45 +1,85 @@
+# Validador sintático BPMN 2.0 + autosave no modelador
 
-# Portar EfficiencIA para o ambiente Lovable
+Adicionar ao `/modeler`:
+1. **Validação sintática híbrida** (hard rules bloqueiam + soft rules marcam).
+2. **Autosave** no `localStorage` a cada alteração, com restauração ao reabrir a página.
 
-O projeto enviado é um app **Vite + React 19 + react-router-dom + Tailwind v4 + bpmn-js + axios** (autenticação demo, dashboard, modelador BPMN, análise e cenários). O Lovable roda em **TanStack Start** (SSR/Workers), então o código é copiado integralmente, mas a camada de roteamento e o bootstrap precisam ser adaptados.
+Redesign visual (taste-skill) fica para o próximo turno.
 
-## O que será copiado sem alterações
+## UX
 
-- `src/@types/*` → `src/@types/`
-- `src/assets/hero.png` → `src/assets/`
-- `src/components/**` (auth, bpmn, layout, process)
-- `src/contexts/AuthContext.tsx`
-- `src/services/**` (api, authService, processService, analysisService)
-- `src/utils/**` (bpmnUtils, downloadFile)
-- `src/pages/**` (DashboardPage, ModelerPage, AnalysisPage, ScenariosPage, LoginPage, SignupPage) — código preservado
+**Validação**
+- Toast (`sonner`) quando uma hard rule bloqueia a ação, explicando a regra.
+- Overlay vermelho (erro) ou amarelo (aviso) sobre cada elemento inválido no SVG, com tooltip.
+- Painel "Validação" abaixo do `ProcessDataPanel` lista violações agrupadas; clique = seleciona/centraliza o elemento.
+- Botão **Salvar** confirma se houver erros (permite salvar marcando como inválido).
 
-## Adaptações necessárias
+**Autosave**
+- Salva automaticamente em `localStorage` a cada `commandStack.changed` (debounced 800ms) e quando `processName`/`activities` mudam.
+- Indicador discreto no header da página: "Salvo automaticamente às HH:MM" (ou "Salvando…").
+- Ao montar `ModelerPage`, restaura o último rascunho do `localStorage` se existir, em vez do `defaultBpmnXml`. Toast informativo "Rascunho restaurado".
+- Botão "Descartar rascunho" no painel ao lado do indicador → volta para `defaultBpmnXml`.
+- O Salvar manual existente continua funcionando (usa `saveProcessLocally` em outra chave) — autosave usa chave separada `efficiencia:modeler:draft`.
 
-1. **Dependências**: instalar `bpmn-js`, `axios`, `lucide-react` (atualizar versão para a usada hoje, a do upload está desatualizada).
-2. **Roteamento (react-router-dom → TanStack Router)**:
-   - Substituir `src/routes/AppRoutes.tsx` e `src/App.tsx` por rotas baseadas em arquivo em `src/routes/`:
-     ```
-     src/routes/__root.tsx           (já existe — envolver com AuthProvider)
-     src/routes/login.tsx
-     src/routes/signup.tsx
-     src/routes/_authenticated.tsx          (layout: AppLayout + <Outlet/>)
-     src/routes/_authenticated.index.tsx    (DashboardPage)
-     src/routes/_authenticated.modeler.tsx
-     src/routes/_authenticated.analysis.tsx
-     src/routes/_authenticated.scenarios.tsx
-     ```
-   - Trocar imports `react-router-dom` → `@tanstack/react-router` em `Sidebar.tsx`, `Header.tsx`, `LoginForm.tsx`, `SignupForm.tsx`, `ProtectedRoute.tsx`:
-     - `Link` continua `Link` (mas usa `to` tipado)
-     - `useLocation` → `useRouterState({ select: s => s.location })`
-     - `useNavigate` → `useNavigate()` do TanStack
-     - `<Navigate to=...>` → `redirect()` ou `<Navigate>` do TanStack
-3. **SSR-safety do bpmn-js**: `bpmn-js` usa `window` no carregamento. O `BpmnModeler` será carregado dinamicamente (`const Mod = (await import("bpmn-js/lib/Modeler")).default`) dentro de `useEffect`, e o componente envolto em guarda `typeof window !== "undefined"` para não quebrar no SSR.
-4. **Estilos**: o `src/index.css` original (`@import "tailwindcss"`) é descartado — o Lovable já possui `src/styles.css` com Tailwind v4 e tokens semânticos. O `App.css` será descartado (não há nada essencial). Cores hardcoded (`bg-slate-50`, `text-slate-900`, etc.) ficam como estão para preservar o visual atual; podemos migrar para tokens depois se quiser.
-5. **API URL**: `api.ts` lê `import.meta.env.VITE_API_URL`. Mantido como está; sem `VITE_API_URL` definida, cai no fallback `http://localhost:8000` (chamadas vão falhar até você configurar uma URL ou trocar para Lovable Cloud — fica para um próximo passo).
-6. **Auth demo**: o `AuthContext` já carrega um `DEMO_USER` por padrão, então `_authenticated` permite navegar sem backend real. `ProtectedRoute` original é praticamente um passthrough, então é absorvido no layout `_authenticated`.
-7. **Metadados de rota**: cada rota nova recebe `head()` com `title` e `description` específicos (Dashboard, Modelagem BPMN, Análise, Cenários, Login, Cadastro).
-8. **Limpeza**: não copiar `index.html`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `package-lock.json`, `.git`, `main.tsx`, `App.tsx`, `App.css`, `index.css`, `routes/AppRoutes.tsx` — tudo isso já é gerenciado pelo template TanStack do Lovable.
+## Regras de validação — separação hard vs soft
+
+**Hard (bloqueia via `RuleProvider`):**
+- StartEvent não aceita SequenceFlow de entrada; EndEvent não aceita de saída.
+- SequenceFlow self-loop (origem = destino).
+- SequenceFlow cruzando Pools / processos distintos.
+- SequenceFlow conectando Pools diretamente (deve ser MessageFlow).
+- MessageFlow só entre Pools distintos.
+- BoundaryEvent só anexado a Activity.
+- Event-Based Gateway: destinos só IntermediateCatchEvent / ReceiveTask.
+- Conexões entre tipos incompatíveis (ex.: DataObject por SequenceFlow).
+- IDs duplicados em paste.
+
+**Soft (marca + lista, não bloqueia):**
+- Processo sem StartEvent / sem EndEvent.
+- Task / IntermediateEvent isolado.
+- IntermediateEvent ≠ 1 entrada + 1 saída; EndEvent sem entrada.
+- Gateway divergente exclusivo/inclusivo com <2 saídas; convergente com <2 entradas.
+- ParallelGateway com condição em SequenceFlow.
+- Event-Based Gateway sem ≥2 alternativas ou com default flow (warning).
+- ComplexGateway sem múltiplas in/out.
+- Elementos não alcançáveis a partir de StartEvent (orphans).
+- Elementos sem caminho até EndEvent (deadlocks).
+- Ciclos compostos só por gateways.
+- SubProcess expandido vazio.
+- TextAnnotation sem Association; DataObject sem DataAssociation.
+- Tasks com nome vazio (informativo).
+
+## Arquitetura técnica
+
+### Novos arquivos
+- `src/lib/bpmn-validation/CustomRules.ts` — estende `BpmnRules` (`canConnect`, `canCreate`, `canAttach`). Emite `validation.blocked` no `eventBus` antes de `return false`.
+- `src/lib/bpmn-validation/SemanticValidator.ts` — `validate(modeler): Violation[]`. Usa `elementRegistry`; faz BFS forward dos StartEvents e backward dos EndEvents para reachability/deadlock; detecta ciclos só-gateways.
+- `src/lib/bpmn-validation/types.ts` — `Violation { id, elementId, severity, rule, message }`.
+- `src/lib/bpmn-validation/index.ts` — módulo didi (`{ __init__: ['customRules'], customRules: ['type', CustomRules] }`) para `additionalModules`.
+- `src/components/bpmn/ValidationPanel.tsx` — lista agrupada erro/aviso; clique → `canvas.scrollToElement` + `selection.select`.
+- `src/hooks/useBpmnValidation.ts` — escuta `commandStack.changed` (debounce 150ms) + `import.done` + `validation.blocked`; mantém `violations[]`; aplica/limpa `overlays`.
+- `src/lib/modeler/autosave.ts` — `loadDraft()`, `saveDraft(draft)`, `clearDraft()` em `localStorage` com chave `efficiencia:modeler:draft`. Shape: `{ bpmnXml, processName, activities, savedAt }`. Guard `typeof window !== 'undefined'`.
+- `src/hooks/useModelerAutosave.ts` — recebe `{bpmnXml, processName, activities}`, debounce 800ms, grava draft, expõe `{ lastSavedAt, status: 'idle'|'saving'|'saved', discard() }`.
+
+### Arquivos modificados
+- `src/components/bpmn/BpmnModeler.tsx` — passa `additionalModules: [customRulesModule]`.
+- `src/pages/ModelerPage.tsx` —
+  - No mount, chama `loadDraft()`; se existir, hidrata estado inicial e dispara toast "Rascunho restaurado". Senão, usa `defaultBpmnXml`.
+  - Usa `useModelerAutosave` para persistir mudanças.
+  - Usa `useBpmnValidation` e renderiza `ValidationPanel`.
+  - Mostra indicador "Salvo às HH:MM" + botão "Descartar rascunho" no cabeçalho.
+  - `handleSave` (manual) confirma se houver erros.
+
+### Detalhes
+- `RuleProvider.return false` cancela; antes, `eventBus.fire('validation.blocked', { rule, message })` → hook dispara `toast.error`.
+- Overlays: chave `${elementId}:${ruleId}`; limpos a cada re-validação.
+- Autosave usa `JSON.stringify` com try/catch (quota/erro de serialização); falhas viram `toast.warning` discreto e log no console.
+- Restauração só acontece se o draft tiver `bpmnXml` válido; caso contrário, ignora silenciosamente.
+
+## Fora de escopo
+- Redesign visual (taste-skill) — próximo turno.
+- Sincronizar autosave/validação com backend.
+- Validações semânticas de negócio (expressões, executabilidade).
 
 ## Resultado
-
-Mesmas telas, mesmo visual, mesmos serviços e contextos, navegando via TanStack Router sob `/login`, `/signup`, `/` (dashboard), `/modeler`, `/analysis`, `/scenarios`. Pronto para evoluir (ex.: trocar `authService`/`api` por Lovable Cloud quando quiser backend real).
+No `/modeler`: ações estruturalmente impossíveis são bloqueadas com toast; demais inconsistências aparecem como overlay e lista clicável; cada edição é salva automaticamente no `localStorage` e restaurada ao reabrir, sem depender do botão Salvar.
