@@ -1,84 +1,67 @@
-# Validador sem overlays + autosave puro + redesign Emerald Prestige
+Reescrever as mensagens de validação em português claro, sem jargão BPMN, focando em "o que está errado + o que fazer".
 
-Três mudanças coordenadas no `/modeler` e na identidade visual do app inteiro.
+## 1. Mensagens em linguagem leiga
 
-## 1. Validação: borda colorida no SVG, descrição só no painel
+Substituir termos técnicos por equivalentes amigáveis em todas as mensagens de `SemanticValidator.ts` e `CustomRules.ts`:
 
-- Remover os círculos amarelos/vermelhos sobrepostos via `overlays.add` no `useBpmnValidation`.
-- Em vez disso, usar `canvas.addMarker(elementId, classe)` com duas classes: `validation-error` e `validation-warning`. Re-validar limpa markers antigos com `removeMarker`.
-- Adicionar CSS em `src/styles.css` que pinta a **borda** dos elementos BPMN marcados:
-  - `.djs-element.validation-warning .djs-visual > :nth-child(1) { stroke: var(--color-warning); stroke-width: 3px; }`
-  - Mesma regra para `validation-error` com `--color-destructive`.
-  - Variantes para SequenceFlow/MessageFlow (também via `:nth-child(1)`).
-- Sem tooltip, sem `title`, sem badge no canvas. A descrição da violação fica exclusivamente no `ValidationPanel` (já existente, clicar continua centralizando o elemento).
+| Termo técnico | Termo amigável |
+|---|---|
+| Start Event | "evento de início" (do processo) |
+| End Event | "evento de fim" |
+| Sequence Flow | "seta de fluxo" / "ligação" |
+| Boundary Event | "evento anexado" |
+| Task / CallActivity | "atividade" |
+| Gateway | "decisão" (exclusivo/inclusivo) ou "bifurcação paralela" |
+| Pool / Participant | "raia/pool" |
+| Message Flow | "mensagem entre raias" |
+| Artifact / DataObject | "anotação / objeto de dado" |
 
-## 2. Remover botão "Salvar processo"
+**Exemplos de reescrita** (todas terão dois pedaços: problema + sugestão):
 
-- `BpmnToolbar`: remove botão Save, prop `onSave`, ícone `Save` do import.
-- `ModelerPage`: remove `handleSave`, `saveProcessLocally`, confirm-on-errors, import de `ProcessModel`. Autosave (já implementado) cobre tudo.
-- O indicador "Salvo automaticamente às HH:MM" no header continua sendo o feedback de persistência.
-- `services/processService.saveProcessLocally` fica no codebase (não usado agora), pode ser limpo em outro turno.
+- `process.no_start`: "Este processo não tem um ponto de início. Adicione um evento de início (círculo fino) para indicar onde o fluxo começa."
+- `process.no_end`: "Este processo não termina em lugar nenhum. Adicione um evento de fim (círculo grosso) para fechar o fluxo."
+- `end.no_incoming`: "O evento de fim está solto. Conecte uma seta vindo de alguma atividade ou decisão até ele."
+- `start.no_outgoing`: "O evento de início não sai para lugar nenhum. Puxe uma seta dele até a primeira atividade."
+- `task.isolated`: "Esta atividade está solta no diagrama. Conecte-a ao restante do processo com setas de entrada e saída."
+- `task.no_incoming`: "Esta atividade não recebe nenhuma seta de entrada. Indique de onde o fluxo chega até ela."
+- `task.no_outgoing`: "Esta atividade não tem saída. Indique para onde o fluxo segue depois dela."
+- `task.unnamed`: "Esta atividade está sem nome. Dê um nome curto que descreva o que é feito (ex.: 'Aprovar pedido')."
+- `gateway.no_branches`: "Esta decisão não está dividindo nem juntando caminhos. Use-a com pelo menos 2 saídas (para escolher um caminho) ou 2 entradas (para juntar caminhos)."
+- `parallel.no_branches`: "Esta bifurcação paralela precisa abrir ou fechar caminhos. Conecte ao menos 2 entradas ou 2 saídas."
+- `event_gateway.few_alternatives`: "Esta decisão por eventos precisa de pelo menos 2 alternativas (eventos que podem acontecer)."
+- `event_gateway.converging`: "Decisões por eventos servem só para abrir caminhos, não para juntar. Use outra decisão para convergir."
+- `complex.no_branches`: "Esta decisão complexa precisa de múltiplos caminhos de entrada ou saída."
+- `intermediate.degree`: "Um evento intermediário deve ter exatamente uma seta chegando e uma saindo."
+- `flow.missing_endpoint`: "Esta seta está solta — falta a ponta de origem ou de destino."
+- `flow.self_loop`: "Esta seta liga um elemento a ele mesmo. Remova-a ou redirecione para outro elemento."
+- `parallel.conditional_flow`: "Setas que saem de uma bifurcação paralela não podem ter condição — todas seguem juntas."
+- `graph.unreachable`: "Este elemento está em um trecho do diagrama que nunca é alcançado a partir do início."
+- `graph.deadlock`: "A partir deste elemento não há como chegar ao fim do processo (caminho sem saída)."
+- `graph.gateway_cycle`: "Há um laço (loop) formado apenas por decisões, sem nenhuma atividade no meio. Inclua ao menos uma atividade no ciclo."
+- `boundary.no_host`: "Este evento anexado está flutuando. Encoste-o na borda de uma atividade."
+- `id.duplicate`: "Identificador duplicado no diagrama (`{id}`). Isto pode causar erros ao exportar."
 
-## 3. Redesign visual — Emerald Prestige (taste-skill aplicado)
+E em `CustomRules.ts` (toasts ao bloquear ação):
+- `flow.self_loop`: "Não dá para ligar um elemento a ele mesmo."
+- `flow.pool_to_pool`: "Raias não se conectam diretamente. Use uma mensagem entre elementos dentro das raias."
+- `flow.cross_process`: "Setas de fluxo só ligam elementos do mesmo processo."
+- `start.incoming_forbidden`: "Eventos de início não recebem setas — eles começam o fluxo."
+- `end.outgoing_forbidden`: "Eventos de fim não têm saída — eles encerram o fluxo."
+- `event_gateway.invalid_target`: "Decisões por evento só ligam a eventos intermediários ou tarefas de recebimento."
+- `boundary.host.invalid`: "Eventos anexados precisam ser colocados na borda de uma atividade."
+- `flow.artifact_to_artifact`: "Anotações e objetos de dado não se ligam entre si por fluxo."
 
-**Briefing inferido (taste-skill §0):** ferramenta B2B interna de modelagem de processos — densidade compacta, vibe Linear/Figma com toque premium, não landing page. Audiência: analistas de processo + gestores. Acento dourado é sinal de qualidade, não decoração.
+## 2. Painel de Validação mais claro
 
-**Decisões fixas:**
-- Paleta Emerald Prestige: surface `#f5f0e0` (cream warm), foreground `#0a1f17`, primary `#0d7a5f` (emerald), primary-deep `#064e3b`, accent `#c9a84c` (gold), warning `#c9a84c`, destructive `#9b2c2c`. Dark mode espelhado (surface `#0a1410`, foreground cream).
-- Tipografia: **Sora** (display, headings, números) + **Manrope** (body, inputs, labels). Tabular nums em métricas/status.
-- Densidade compacta: sidebar 220px, header 52px, padding base 12px, raio 10px (não pill), bordas hairline `1px solid var(--color-border)` em vez de shadows pesados.
-- Microcopy/iconografia: lucide com `stroke-width 1.5`, tamanhos 14–16px.
-- Sem gradients chamativos, sem glassmorphism. Profundidade vem de hairlines + um único accent dourado em estados ativos.
-
-### Tokens em `src/styles.css`
-- `:root` define variáveis OKLCH para todas as cores acima + dark mode.
-- Bloco `@theme inline` mapeia `--color-background`, `--color-foreground`, `--color-primary`, `--color-primary-foreground`, `--color-accent`, `--color-accent-foreground`, `--color-warning`, `--color-warning-foreground`, `--color-destructive`, `--color-border`, `--color-muted`, `--color-muted-foreground`, `--color-card`, `--color-sidebar`, `--font-display`, `--font-sans`.
-- `body { font-family: var(--font-sans); }`, headings `font-family: var(--font-display); letter-spacing: -0.02em;`.
-- `@utility hairline { border: 1px solid var(--color-border); }` para reutilizar.
-- Regras `.djs-element.validation-warning/error` (item 1).
-- Reset opcional do canvas BPMN — `.bjs-container { background: var(--color-card); }`.
-
-### Fontes (`src/routes/__root.tsx`)
-- Adicionar `<link rel="preconnect" href="https://fonts.googleapis.com">`, `<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="">` e `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap">` nos `links` do `head()`.
-
-### Componentes a restilizar (swap de `text-slate-*`/`bg-white` por tokens)
-- `src/components/layout/Sidebar.tsx` — fundo `bg-sidebar`, item ativo com barra dourada de 2px à esquerda + texto `text-foreground`, hover `bg-muted`. Largura 220px, tipografia 13px, ícones 16px.
-- `src/components/layout/Header.tsx` — `bg-background border-b border-border`, altura 52px, nome do usuário + botão sair compactos.
-- `src/components/layout/AppLayout.tsx` — grid `[220px_1fr]`, padding 20px no conteúdo.
-- `src/pages/ModelerPage.tsx` — h1 em Sora, indicador autosave com dot menor e mono tabular, input do nome compacto (`h-9 rounded-md`).
-- `src/components/bpmn/BpmnToolBar.tsx` — após remoção do Save, botões Import/Export em estilo "ghost" (`border border-border bg-card hover:bg-muted`), ícones 14px.
-- `src/components/process/ProcessDataPanel.tsx` — labels uppercase 10px tracking-wider, inputs `h-8 rounded-md border-border`, separadores hairline.
-- `src/components/bpmn/ValidationPanel.tsx` — cabeçalho compacto, contadores em mono tabular, itens com borda esquerda 2px da cor da severidade (sem fundo colorido), texto em Manrope 13px.
-- `src/components/bpmn/BpmnModeler.tsx` — wrapper `bg-card border border-border rounded-xl`.
-- `src/pages/DashboardPage.tsx`, `LoginPage.tsx`, `SignupPage.tsx`, `AnalysisPage.tsx`, `ScenariosPage.tsx` — substitui slate hardcoded por tokens; cards `bg-card hairline rounded-xl`, CTAs `bg-primary text-primary-foreground`, links `text-primary`.
-- `src/components/auth/LoginForm.tsx` / `SignupForm.tsx` — inputs e botões em tokens.
-
-## Arquitetura técnica
-
-### Arquivos modificados
-- `src/styles.css` — tokens OKLCH light/dark, `@theme inline`, fontes display/sans, regras `.djs-element.validation-*`, opcional `bjs-container`.
-- `src/routes/__root.tsx` — links para Google Fonts.
-- `src/hooks/useBpmnValidation.ts` — substitui `overlays.add/remove` por `canvas.addMarker/removeMarker`; remove HTML do dot e o `title`.
-- `src/components/bpmn/BpmnToolBar.tsx` — remove Save; ajusta classes para tokens.
-- `src/pages/ModelerPage.tsx` — remove `handleSave`/import; ajusta classes para tokens; indicador autosave em mono.
-- Demais componentes listados acima — apenas troca de classes Tailwind, sem mudança de lógica.
-
-### Arquivos não tocados
-- `services/`, `contexts/`, `utils/`, `@types/`, `lib/bpmn-validation/` (regras), `lib/modeler/autosave.ts`, `hooks/useModelerAutosave.ts`, `routes/_authenticated.*.tsx`, geração de XML BPMN.
+`src/components/bpmn/ValidationPanel.tsx`:
+- Renomear severidades: `Erros` → "Precisa corrigir", `Avisos` → "Sugestões", `Notas` → "Dicas".
+- Tooltip nos contadores do header com o nome completo (`title=`).
+- Esconder o `v.rule` técnico da linha (ex.: `task.no_incoming`) — manter só o nome do elemento. O `rule` fica em `title=` no botão pra quem precisar inspecionar.
+- Estado vazio: trocar "Diagrama sintaticamente válido." por "Tudo certo — o diagrama está consistente."
+- Header: "X violações." → "X ponto(s) a revisar." / "Sem problemas detectados."
 
 ## Fora de escopo
-- Mudar a paleta dos elementos BPMN renderizados pelo bpmn-js (mantém estilo nativo). Só borda de validação é colorida pelo nosso CSS.
-- Animações GSAP / micro-interações além de transitions Tailwind padrão.
-- Backend / Lovable Cloud.
 
-## QA antes de fechar
-- Toda regra de validação warning/error pinta a **borda** do elemento, sem dot.
-- Toolbar não tem Save; autosave continua persistindo.
-- Nenhum `text-slate-*` / `bg-white` / `text-black` cru sobra nas páginas listadas (grep como check).
-- Sora carrega nos headings, Manrope no body (visível no preview).
-- Light e dark modes legíveis (sem texto cinza claro sobre cream).
-
-## Resultado
-- BPMN inválido = contorno amarelo/vermelho discreto; explicação fica no painel.
-- Sem botão Salvar — só autosave.
-- App ganha identidade Emerald Prestige consistente: cream + emerald + gold, Sora/Manrope, densidade de ferramenta.
+- Não muda lógica de validação nem regras (somente strings).
+- Não muda IDs de `rule` (continuam estáveis pra debug).
+- Não toca em `types.ts`, hooks, autosave, design system.
