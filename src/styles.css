@@ -184,24 +184,18 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ============ BPMN validation markers (border-only) ============ */
-/* Shapes: first child of .djs-visual is the rendered geometry */
-.djs-element.validation-warning .djs-visual > :nth-child(1) {
-  stroke: var(--color-warning) !important;
-  stroke-width: 3px !important;
+/* ============ BPMN canvas validation border ============ */
+.bpmn-canvas-frame {
+  border: 1px solid var(--color-border);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
-.djs-element.validation-error .djs-visual > :nth-child(1) {
-  stroke: var(--color-destructive) !important;
-  stroke-width: 3px !important;
+.bpmn-canvas-frame[data-validation="warning"] {
+  border-color: var(--color-warning);
+  box-shadow: 0 0 0 1px var(--color-warning) inset;
 }
-/* Connections (sequence/message flow) use a path */
-.djs-connection.validation-warning .djs-visual > path {
-  stroke: var(--color-warning) !important;
-  stroke-width: 2.5px !important;
-}
-.djs-connection.validation-error .djs-visual > path {
-  stroke: var(--color-destructive) !important;
-  stroke-width: 2.5px !important;
+.bpmn-canvas-frame[data-validation="error"] {
+  border-color: var(--color-destructive);
+  box-shadow: 0 0 0 1px var(--color-destructive) inset;
 }
 
 /* Subtle canvas backdrop */

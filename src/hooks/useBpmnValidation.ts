@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type BpmnModelerLib from "bpmn-js/lib/Modeler";
 import { toast } from "sonner";
 
@@ -11,57 +11,19 @@ interface UseBpmnValidationParams {
   modeler: BpmnModelerLib | null;
 }
 
+export type ValidationSeverity = "error" | "warning" | null;
+
 export function useBpmnValidation({ modeler }: UseBpmnValidationParams) {
   const [violations, setViolations] = useState<Violation[]>([]);
-  const markedRef = useRef<Map<string, string>>(new Map());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!modeler) return;
     const eventBus: Any = modeler.get("eventBus");
-    const canvas: Any = modeler.get("canvas");
-    const elementRegistry: Any = modeler.get("elementRegistry");
-
-    function clearMarkers() {
-      for (const [elementId, cls] of markedRef.current.entries()) {
-        const el = elementRegistry.get(elementId);
-        if (el) {
-          try {
-            canvas.removeMarker(el, cls);
-          } catch {
-            /* element removed */
-          }
-        }
-      }
-      markedRef.current.clear();
-    }
 
     function runValidation() {
       const result = validate(modeler);
       setViolations(result);
-
-      clearMarkers();
-      // Pick worst severity per element
-      const worst = new Map<string, "error" | "warning">();
-      for (const v of result) {
-        if (!v.elementId) continue;
-        if (v.severity === "error") {
-          worst.set(v.elementId, "error");
-        } else if (v.severity === "warning" && worst.get(v.elementId) !== "error") {
-          worst.set(v.elementId, "warning");
-        }
-      }
-      for (const [elementId, severity] of worst.entries()) {
-        const el = elementRegistry.get(elementId);
-        if (!el) continue;
-        const cls = severity === "error" ? "validation-error" : "validation-warning";
-        try {
-          canvas.addMarker(el, cls);
-          markedRef.current.set(elementId, cls);
-        } catch {
-          /* noop */
-        }
-      }
     }
 
     function scheduleValidation() {
@@ -84,9 +46,14 @@ export function useBpmnValidation({ modeler }: UseBpmnValidationParams) {
       eventBus.off("import.done", scheduleValidation);
       eventBus.off("validation.blocked", onBlocked);
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      clearMarkers();
     };
   }, [modeler]);
+
+  const worstSeverity = useMemo<ValidationSeverity>(() => {
+    if (violations.some((v) => v.severity === "error")) return "error";
+    if (violations.some((v) => v.severity === "warning")) return "warning";
+    return null;
+  }, [violations]);
 
   function focusElement(elementId: string) {
     if (!modeler) return;
@@ -103,5 +70,5 @@ export function useBpmnValidation({ modeler }: UseBpmnValidationParams) {
     }
   }
 
-  return { violations, focusElement };
+  return { violations, focusElement, worstSeverity };
 }

@@ -56,7 +56,7 @@ export function ModelerPage() {
     activities,
   });
 
-  const { violations, focusElement } = useBpmnValidation({ modeler });
+  const { violations, focusElement, worstSeverity } = useBpmnValidation({ modeler });
 
   useEffect(() => {
     if (initial.restored && !restoredToastRef.current) {
@@ -168,6 +168,7 @@ export function ModelerPage() {
           xml={bpmnXml}
           onChange={handleBpmnChange}
           onModelerReady={handleModelerReady}
+          validationSeverity={worstSeverity}
         />
 
         <div className="flex flex-col gap-5">
