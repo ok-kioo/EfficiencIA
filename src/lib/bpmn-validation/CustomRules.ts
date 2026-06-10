@@ -68,7 +68,7 @@ export default class CustomRules extends RuleProvider {
         if (!isType(target, "bpmn:Activity")) {
           return self.block(
             "boundary.host.invalid",
-            "BoundaryEvent só pode ser anexado a uma Activity.",
+            "Eventos anexados precisam ser colocados na borda de uma atividade.",
             shape.id
           );
         }
@@ -83,7 +83,7 @@ export default class CustomRules extends RuleProvider {
     if (source === target || source.id === target.id) {
       return this.block(
         "flow.self_loop",
-        "Não é permitido conectar um elemento a si mesmo.",
+        "Não dá para ligar um elemento a ele mesmo.",
         source.id
       );
     }
@@ -92,7 +92,7 @@ export default class CustomRules extends RuleProvider {
     if (isType(source, "bpmn:Participant") && isType(target, "bpmn:Participant")) {
       return this.block(
         "flow.pool_to_pool",
-        "Pools não podem ser conectados diretamente — use um Message Flow entre elementos internos.",
+        "Raias (pools) não se conectam diretamente. Use uma mensagem entre elementos dentro das raias.",
         source.id
       );
     }
@@ -114,7 +114,7 @@ export default class CustomRules extends RuleProvider {
       if (!crossesPool) {
         return this.block(
           "flow.cross_process",
-          "Sequence Flow só pode conectar elementos do mesmo processo.",
+          "Setas de fluxo só ligam elementos do mesmo processo.",
           source.id
         );
       }
@@ -129,7 +129,7 @@ export default class CustomRules extends RuleProvider {
     if (isType(target, "bpmn:StartEvent")) {
       return this.block(
         "start.incoming_forbidden",
-        "Start Event não pode receber Sequence Flows de entrada.",
+        "Eventos de início não recebem setas — eles é que começam o fluxo.",
         target.id
       );
     }
@@ -138,7 +138,7 @@ export default class CustomRules extends RuleProvider {
     if (isType(source, "bpmn:EndEvent")) {
       return this.block(
         "end.outgoing_forbidden",
-        "End Event não pode originar Sequence Flows de saída.",
+        "Eventos de fim não têm saída — eles encerram o fluxo.",
         source.id
       );
     }
@@ -150,7 +150,7 @@ export default class CustomRules extends RuleProvider {
       if (!ok) {
         return this.block(
           "event_gateway.invalid_target",
-          "Event-Based Gateway só pode conectar a Intermediate Catch Events ou Receive Tasks.",
+          "Decisões por evento só ligam a eventos intermediários ou tarefas de recebimento.",
           source.id
         );
       }
@@ -174,7 +174,7 @@ export default class CustomRules extends RuleProvider {
       } else if (isAny(source, artifactLikeTypes) && isAny(target, artifactLikeTypes)) {
         return this.block(
           "flow.artifact_to_artifact",
-          "Artefatos (Data Objects, Text Annotations, Groups) não podem ser ligados entre si por fluxo.",
+          "Anotações e objetos de dado não se ligam entre si por fluxo.",
           source.id
         );
       }

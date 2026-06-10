@@ -69,7 +69,14 @@ export function validate(modeler: Any): Violation[] {
   }
   for (const [id, count] of idCount.entries()) {
     if (count > 1) {
-      push(violations, id, id, "error", "id.duplicate", `ID duplicado: ${id}.`);
+      push(
+        violations,
+        id,
+        id,
+        "error",
+        "id.duplicate",
+        `Há dois elementos com o mesmo identificador (\`${id}\`). Isto pode causar erros ao exportar.`
+      );
     }
   }
 
@@ -83,7 +90,7 @@ export function validate(modeler: Any): Violation[] {
         getName(be),
         "error",
         "boundary.no_host",
-        "Boundary Event sem atividade hospedeira."
+        "Este evento anexado está flutuando. Encoste-o na borda de uma atividade para que ele fique 'colado' nela."
       );
     }
   }
@@ -100,7 +107,7 @@ export function validate(modeler: Any): Violation[] {
         procId,
         "warning",
         "process.no_start",
-        "Processo sem Start Event."
+        "Este processo não tem um ponto de início. Adicione um evento de início (círculo de borda fina) para indicar onde o fluxo começa."
       );
     }
     if (endEvents.length === 0) {
@@ -110,7 +117,7 @@ export function validate(modeler: Any): Violation[] {
         procId,
         "warning",
         "process.no_end",
-        "Processo sem End Event."
+        "Este processo não termina em lugar nenhum. Adicione um evento de fim (círculo de borda grossa) para fechar o fluxo."
       );
     }
 
@@ -145,7 +152,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "end.no_incoming",
-            "End Event precisa ter ao menos um Sequence Flow de entrada."
+            "O evento de fim está solto. Conecte uma seta vindo de alguma atividade ou decisão até ele."
           );
         }
       } else if (isType(node, "bpmn:StartEvent")) {
@@ -156,7 +163,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "start.no_outgoing",
-            "Start Event precisa ter ao menos um Sequence Flow de saída."
+            "O evento de início não sai para lugar nenhum. Puxe uma seta dele até a primeira atividade do fluxo."
           );
         }
       } else if (
@@ -170,7 +177,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "intermediate.degree",
-            "Evento intermediário deve ter exatamente 1 entrada e 1 saída."
+            "Um evento intermediário deve ter exatamente uma seta chegando e uma seta saindo."
           );
         }
       } else if (isType(node, "bpmn:Task") || isType(node, "bpmn:CallActivity")) {
@@ -181,7 +188,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "task.isolated",
-            "Task isolada do fluxo."
+            "Esta atividade está solta no diagrama. Conecte-a ao restante do processo com setas de entrada e saída."
           );
         } else if (inDeg === 0) {
           push(
@@ -190,7 +197,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "task.no_incoming",
-            "Task sem Sequence Flow de entrada."
+            "Esta atividade não recebe nenhuma seta de entrada. Indique de onde o fluxo chega até ela."
           );
         } else if (outDeg === 0) {
           push(
@@ -199,11 +206,18 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "task.no_outgoing",
-            "Task sem Sequence Flow de saída."
+            "Esta atividade não tem saída. Indique para onde o fluxo segue depois dela."
           );
         }
         if (!node.businessObject?.name) {
-          push(violations, node.id, name, "info", "task.unnamed", "Task sem nome.");
+          push(
+            violations,
+            node.id,
+            name,
+            "info",
+            "task.unnamed",
+            "Esta atividade está sem nome. Dê um nome curto que descreva o que é feito (ex.: 'Aprovar pedido')."
+          );
         }
       } else if (isType(node, "bpmn:ExclusiveGateway") || isType(node, "bpmn:InclusiveGateway")) {
         if (outDeg >= 2 && inDeg >= 2) {
@@ -215,7 +229,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "gateway.no_branches",
-            "Gateway exclusivo/inclusivo precisa de ≥2 saídas (divergência) ou ≥2 entradas (convergência)."
+            "Esta decisão não está dividindo nem juntando caminhos. Use-a com pelo menos 2 saídas (para escolher um caminho) ou 2 entradas (para juntar caminhos)."
           );
         }
       } else if (isType(node, "bpmn:ParallelGateway")) {
@@ -226,7 +240,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "parallel.no_branches",
-            "Parallel Gateway precisa de múltiplas entradas ou saídas."
+            "Esta bifurcação paralela precisa abrir ou fechar caminhos simultâneos. Conecte pelo menos 2 entradas ou 2 saídas."
           );
         }
       } else if (isType(node, "bpmn:EventBasedGateway")) {
@@ -237,7 +251,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "event_gateway.few_alternatives",
-            "Event-Based Gateway precisa de ≥2 alternativas."
+            "Esta decisão por eventos precisa de pelo menos 2 alternativas (eventos que podem acontecer)."
           );
         }
         if (inDeg > 1) {
@@ -247,7 +261,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "event_gateway.converging",
-            "Event-Based Gateway não deve ser usado para convergência."
+            "Decisões por eventos servem só para abrir caminhos, não para juntá-los. Use outro tipo de decisão para convergir."
           );
         }
       } else if (isType(node, "bpmn:ComplexGateway")) {
@@ -258,7 +272,7 @@ export function validate(modeler: Any): Violation[] {
             name,
             "warning",
             "complex.no_branches",
-            "Complex Gateway precisa de múltiplas entradas ou saídas."
+            "Esta decisão complexa precisa de múltiplos caminhos de entrada ou saída."
           );
         }
       }
@@ -275,7 +289,7 @@ export function validate(modeler: Any): Violation[] {
           sf.id,
           "error",
           "flow.missing_endpoint",
-          "Sequence Flow sem origem ou destino."
+          "Esta seta está solta — falta a ponta de origem ou de destino."
         );
         continue;
       }
@@ -286,7 +300,7 @@ export function validate(modeler: Any): Violation[] {
           sf.id,
           "error",
           "flow.self_loop",
-          "Sequence Flow conecta um elemento a si mesmo."
+          "Esta seta liga um elemento a ele mesmo. Remova-a ou redirecione para outro elemento."
         );
       }
       if (isType(src, "bpmn:ParallelGateway") && sf.businessObject?.conditionExpression) {
@@ -296,7 +310,7 @@ export function validate(modeler: Any): Violation[] {
           sf.id,
           "warning",
           "parallel.conditional_flow",
-          "Sequence Flow vindo de Parallel Gateway não pode ter condição."
+          "Setas que saem de uma bifurcação paralela não podem ter condição — todos os caminhos seguem juntos."
         );
       }
     }
@@ -337,7 +351,7 @@ export function validate(modeler: Any): Violation[] {
           name,
           "warning",
           "graph.unreachable",
-          "Elemento não é alcançável a partir de nenhum Start Event."
+          "Este elemento está em um trecho do diagrama que nunca é alcançado a partir do início do processo."
         );
       }
       if (endEvents.length > 0 && !canReachEnd.has(node.id)) {
@@ -347,7 +361,7 @@ export function validate(modeler: Any): Violation[] {
           name,
           "warning",
           "graph.deadlock",
-          "Elemento sem caminho até nenhum End Event."
+          "A partir deste elemento não há como chegar ao fim do processo (caminho sem saída)."
         );
       }
     }
@@ -378,7 +392,7 @@ export function validate(modeler: Any): Violation[] {
           gid,
           "warning",
           "graph.gateway_cycle",
-          "Ciclo composto apenas por gateways detectado."
+          "Há um laço (loop) formado apenas por decisões, sem nenhuma atividade no meio. Inclua ao menos uma atividade dentro do ciclo."
         );
         break;
       }

@@ -6,9 +6,15 @@ interface ValidationPanelProps {
 }
 
 const SEVERITY_LABEL: Record<Violation["severity"], string> = {
-  error: "Erros",
-  warning: "Avisos",
-  info: "Notas",
+  error: "Precisa corrigir",
+  warning: "Sugestões",
+  info: "Dicas",
+};
+
+const SEVERITY_FULL: Record<Violation["severity"], string> = {
+  error: "Erros — precisam ser corrigidos",
+  warning: "Avisos — recomendamos revisar",
+  info: "Dicas — melhorias opcionais",
 };
 
 const ACCENT: Record<Violation["severity"], string> = {
@@ -41,20 +47,20 @@ export function ValidationPanel({ violations, onFocus }: ValidationPanelProps) {
           </h2>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {total === 0
-              ? "Sem violações."
-              : `${total} ${total === 1 ? "violação" : "violações"}.`}
+              ? "Sem problemas detectados."
+              : `${total} ${total === 1 ? "ponto a revisar" : "pontos a revisar"}.`}
           </p>
         </div>
         <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground tabular">
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1" title={SEVERITY_FULL.error}>
             <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
             {grouped.error.length}
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1" title={SEVERITY_FULL.warning}>
             <span className="h-1.5 w-1.5 rounded-full bg-warning" />
             {grouped.warning.length}
           </span>
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1" title={SEVERITY_FULL.info}>
             <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
             {grouped.info.length}
           </span>
@@ -64,7 +70,7 @@ export function ValidationPanel({ violations, onFocus }: ValidationPanelProps) {
       <div className="p-3">
         {total === 0 ? (
           <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-3 text-xs text-primary-deep">
-            Diagrama sintaticamente válido.
+            Tudo certo — o diagrama está consistente.
           </div>
         ) : (
           <div className="space-y-4">
@@ -82,6 +88,7 @@ export function ValidationPanel({ violations, onFocus }: ValidationPanelProps) {
                         <button
                           type="button"
                           onClick={() => onFocus(v.elementId)}
+                          title={v.rule}
                           className={`flex w-full items-start gap-2 rounded-md border-l-2 bg-background px-3 py-2 text-left text-[13px] text-foreground transition hover:bg-muted ${ACCENT[severity]}`}
                         >
                           <span
@@ -89,9 +96,11 @@ export function ValidationPanel({ violations, onFocus }: ValidationPanelProps) {
                           />
                           <span className="flex-1">
                             <span className="block leading-snug">{v.message}</span>
-                            <span className="mt-0.5 block text-[11px] text-muted-foreground tabular">
-                              {v.elementName || v.elementId} · {v.rule}
-                            </span>
+                            {v.elementName && (
+                              <span className="mt-0.5 block text-[11px] text-muted-foreground tabular">
+                                {v.elementName}
+                              </span>
+                            )}
                           </span>
                         </button>
                       </li>
