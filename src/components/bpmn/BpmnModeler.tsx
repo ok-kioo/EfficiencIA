@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import BpmnModelerLib from "bpmn-js/lib/Modeler";
+import type BpmnModelerLib from "bpmn-js/lib/Modeler";
 
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
@@ -31,63 +31,65 @@ export const defaultBpmnXml = `<?xml version="1.0" encoding="UTF-8"?>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
 
-export function BpmnModeler({
-  xml,
-  onChange,
-  onModelerReady,
-}: BpmnModelerProps) {
+export function BpmnModeler({ xml, onChange, onModelerReady }: BpmnModelerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const modelerRef = useRef<BpmnModelerLib | null>(null);
   const importedXmlRef = useRef<string>("");
+  const xmlRef = useRef(xml);
+  xmlRef.current = xml;
 
   useEffect(() => {
-    if (!containerRef.current) {
-      return;
-    }
+    if (typeof window === "undefined" || !containerRef.current) return;
+    let destroyed = false;
+    let modeler: BpmnModelerLib | null = null;
 
-    const modeler = new BpmnModelerLib({
-      container: containerRef.current,
-    });
+    (async () => {
+      const { default: BpmnModelerCtor } = await import("bpmn-js/lib/Modeler");
+      if (destroyed || !containerRef.current) return;
 
-    modelerRef.current = modeler;
-    onModelerReady?.(modeler);
+      modeler = new BpmnModelerCtor({ container: containerRef.current });
+      modelerRef.current = modeler;
+      onModelerReady?.(modeler);
 
-    modeler.on("commandStack.changed", async () => {
-      const result = await modeler.saveXML({ format: true });
+      modeler.on("commandStack.changed", async () => {
+        const result = await modeler!.saveXML({ format: true });
+        if (result.xml) onChange(result.xml);
+      });
 
-      if (result.xml) {
-        onChange(result.xml);
+      if (xmlRef.current) {
+        try {
+          await modeler.importXML(xmlRef.current);
+          importedXmlRef.current = xmlRef.current;
+          const canvas = modeler.get("canvas") as { zoom: (v: string) => void };
+          canvas.zoom("fit-viewport");
+        } catch (err) {
+          console.error("Erro ao importar BPMN:", err);
+        }
       }
-    });
+    })();
 
     return () => {
-      modeler.destroy();
+      destroyed = true;
+      modeler?.destroy();
+      modelerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    async function importXml() {
-      const modeler = modelerRef.current;
+    const modeler = modelerRef.current;
+    if (!modeler || !xml || importedXmlRef.current === xml) return;
 
-      if (!modeler || !xml || importedXmlRef.current === xml) {
-        return;
-      }
-
+    (async () => {
       try {
         await modeler.importXML(xml);
         importedXmlRef.current = xml;
-
-        const canvas = modeler.get("canvas") as {
-          zoom: (value: string) => void;
-        };
-
+        const canvas = modeler.get("canvas") as { zoom: (v: string) => void };
         canvas.zoom("fit-viewport");
-      } catch (error) {
-        console.error("Erro ao importar BPMN:", error);
+      } catch (err) {
+        console.error("Erro ao importar BPMN:", err);
       }
-    }
-
-    importXml();
+    })();
   }, [xml]);
 
   return (
