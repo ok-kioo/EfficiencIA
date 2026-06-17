@@ -87,6 +87,12 @@ export function LoginForm() {
         )}
       </button>
 
+      <div className="text-center">
+        <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
+          Esqueci minha senha
+        </Link>
+      </div>
+
       <GoogleButton />
 
       <p className="text-center text-xs text-muted-foreground">

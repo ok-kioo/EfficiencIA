@@ -18,6 +18,25 @@ export async function listForProject(
   return rows;
 }
 
+export interface RecentAnalysis extends Analysis {
+  project_name: string;
+}
+
+export async function listRecent(userId: string, limit = 5): Promise<RecentAnalysis[]> {
+  const { rows } = await query<RecentAnalysis>(
+    `SELECT a.id, a.project_id, a.status, a.summary, a.bottlenecks, a.modeling_issues,
+            a.improvement_suggestions, a.final_assessment, a.error, a.created_at,
+            a.finished_at, p.name AS project_name
+     FROM analyses a
+     JOIN projects p ON p.id = a.project_id
+     WHERE p.user_id = $1
+     ORDER BY a.created_at DESC
+     LIMIT $2`,
+    [userId, limit],
+  );
+  return rows;
+}
+
 export async function findOne(userId: string, id: string): Promise<Analysis> {
   const { rows } = await query<Analysis & { user_id: string }>(
     `SELECT a.*, p.user_id

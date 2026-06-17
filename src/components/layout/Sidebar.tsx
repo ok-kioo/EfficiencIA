@@ -4,7 +4,7 @@ import { GitBranch, HelpCircle, LayoutDashboard } from "lucide-react";
 const menuItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Modelagem", path: "/modeler", icon: GitBranch },
-  { label: "Ajuda", path: "/ajuda", icon: HelpCircle },
+  { label: "Guia", path: "/guia", icon: HelpCircle },
 ] as const;
 
 export function Sidebar() {

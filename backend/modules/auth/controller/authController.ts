@@ -2,12 +2,16 @@ import type { Request, Response, NextFunction } from "express";
 import {
   emailLoginSchema,
   emailSignupSchema,
+  forgotPasswordSchema,
   googleLoginSchema,
+  resetPasswordSchema,
 } from "../domain/Auth.js";
 import {
   getCurrentUser,
   loginWithEmail,
   loginWithGoogle,
+  requestPasswordReset,
+  resetPassword,
   signupWithEmail,
 } from "../service/authService.js";
 
@@ -42,6 +46,25 @@ export async function meHandler(req: Request, res: Response, next: NextFunction)
   try {
     const user = await getCurrentUser(req.user!.id);
     res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function forgotPasswordHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+    res.json(await requestPasswordReset(email));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPasswordHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { token, password } = resetPasswordSchema.parse(req.body);
+    await resetPassword(token, password);
+    res.json({ message: "Senha redefinida com sucesso." });
   } catch (err) {
     next(err);
   }

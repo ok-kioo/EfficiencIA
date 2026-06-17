@@ -1,91 +1,77 @@
-
 ## Objetivo
 
-Substituir o estado mockado do frontend (DEMO_USER, `isAuthenticated: true`, projetos vazios fixos, botão "Analisar" só com toast) por chamadas reais às rotas do backend `backend/` (Express) já implementadas:
+Resolver inconsistências da página de ajuda dentro da plataforma, enriquecer o Dashboard e adicionar o fluxo de "esqueci minha senha".
 
-- `POST /api/auth/login` `/signup` `/google`, `GET /api/auth/me`
-- `GET/POST/PUT/DELETE /api/projects`, `GET/POST /api/projects/:id/analyses`
-- `GET /api/analyses/:id`
+---
 
-## Mudanças no frontend
+## 1. Página de Ajuda dentro da plataforma (`/app/ajuda`)
 
-### 1. Camada HTTP (`src/services/api.ts`)
-- Manter `axios` com `baseURL = import.meta.env.VITE_API_URL ?? "http://localhost:3001"`.
-- Adicionar **interceptor de request** que injeta `Authorization: Bearer <token>` lendo de `localStorage`.
-- Adicionar **interceptor de response** que, em `401`, limpa o token e redireciona para `/login`.
+A `/ajuda` atual é da landing page (header com "Voltar" para `/` e "Criar conta"). Vou criar uma página separada para usuários logados.
 
-### 2. `authService` real (`src/services/authService.ts`)
-Remover `buildDemoResponse`. Chamar de fato:
-- `login({ email, password })` → `POST /api/auth/login`
-- `signup({ name, email, password })` → `POST /api/auth/signup` (não enviar `confirmPassword`)
-- `loginWithGoogle(idToken)` → `POST /api/auth/google`
-- `me()` → `GET /api/auth/me`
+- **Nova rota protegida**: `src/routes/_authenticated.ajuda.tsx` → renderiza `AppLayout` (com Sidebar/Header normais).
+- **Sidebar**: trocar `path: "/ajuda"` por `/app/ajuda` (rota autenticada). Detalhe: como `_authenticated` é pathless, a URL final será `/ajuda` mesmo. Para evitar colisão com a rota pública existente, renomeio a pública para `/sobre-ajuda` **ou** removo a pública e deixo só a interna. **Decisão**: manter a pública em `/ajuda` (landing usa) e criar a interna em `/guia` (rota `_authenticated.guia.tsx`). Sidebar aponta para `/guia`.
+- **Conteúdo da nova página interna** (mais completa que a landing):
+  - Introdução curta + link "Criar novo processo".
+  - Seção **Como preencher os dados operacionais** de cada elemento (tempo médio, custo, responsável, SLA, recursos) — explicando o que cada campo significa e como impacta a análise da IA.
+  - Catálogo completo de elementos, incluindo as variações específicas que a landing não cobre:
+    - **Tarefas**: User Task, Service Task, Manual Task, Script Task, Send/Receive Task.
+    - **Gateways**: Exclusive (XOR), Parallel (AND), Inclusive (OR), Event-based — com exemplos de cada.
+    - **Eventos**: Start/Intermediate/End nas variações Message, Timer, Error, Signal.
+    - **Subprocessos e Call Activities**.
+    - **Pools e Lanes** com mensagens entre pools.
+  - Boas práticas avançadas + FAQ focado em uso da plataforma logada (autosave, análise IA, histórico de análises, exportação).
+  - Sem botão "Criar conta"; CTAs apontam para `/modeler` e `/dashboard`.
 
-Persistir `token` e `user` em `localStorage`; tratar erros do axios devolvendo a mensagem do backend (`err.response?.data?.message`).
+## 2. Dashboard mais rico (`src/pages/DashboardPage.tsx`)
 
-### 3. `AuthContext` real (`src/contexts/AuthContext.tsx`)
-- Remover `DEMO_USER` e `isAuthenticated: true` forçado.
-- Estado: `user`, `isLoading` (true durante hidratação inicial), `isAuthenticated = !!user`.
-- Ao montar: se houver token, chamar `authService.me()` para revalidar; em falha → logout silencioso.
-- `login`/`signup`/`loginWithGoogle` atualizam o user a partir da resposta real.
+Adicionar, mantendo o estilo atual:
 
-### 4. Guard real de rota (`src/routes/_authenticated.tsx`)
-Adicionar componente que, dentro do `AuthProvider`, espera `isLoading` e:
-- Se não autenticado → `useNavigate({ to: "/login" })`.
-- Se autenticado → renderiza `<AppLayout><Outlet/></AppLayout>`.
+- **Cards de estatísticas** no topo (4 cards): total de processos, total de análises, análises concluídas, última análise.
+- **Bloco "Atalhos rápidos"**: Criar processo, Abrir modelagem em branco, Ler guia (`/guia`).
+- **Lista "Análises recentes"** (até 5): nome do projeto, score, status, data — buscando via `analysisService` (novo método `listRecent` ou agregando do backend).
+  - Backend: adicionar rota `GET /api/analyses/recent?limit=5` reutilizando service.
+- **Estado dos processos**: mostrar último score por projeto nos cards de processo existentes.
+- Manter responsividade e tema atuais (cards, bordas, tipografia display).
 
-Atualizar `ProtectedRoute.tsx` (hoje passthrough) para a mesma lógica e usar nas páginas que precisarem.
+## 3. Esqueci minha senha
 
-### 5. Login com Google
-- Instalar `@react-oauth/google`.
-- Envolver `LoginPage` e `SignupPage` com `<GoogleOAuthProvider clientId={VITE_GOOGLE_CLIENT_ID}>`.
-- Adicionar botão `<GoogleLogin onSuccess={({credential}) => loginWithGoogle(credential)}>` em `LoginForm` e `SignupForm` (separador "ou").
-- Se `VITE_GOOGLE_CLIENT_ID` não estiver definido, esconder o botão (graceful).
+### Backend
+- Migração `004_password_resets.sql`:
+  ```sql
+  CREATE TABLE public.password_resets (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash text NOT NULL UNIQUE,
+    expires_at timestamptz NOT NULL,
+    used_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+  ```
+- `authService` ganha:
+  - `requestPasswordReset(email)`: gera token aleatório (32 bytes hex), salva hash SHA-256, expira em 1h. Retorna sempre 200 (não revela se e-mail existe). Loga o link no console do backend (substituto de e-mail enquanto não há provedor configurado) e/ou retorna o link em dev se `NODE_ENV !== "production"`.
+  - `resetPassword(token, newPassword)`: valida hash, expiração e `used_at`, atualiza `password_hash`, marca como usado.
+- Rotas:
+  - `POST /api/auth/forgot-password` `{ email }`
+  - `POST /api/auth/reset-password` `{ token, password }`
 
-### 6. Serviços de projeto e análise (novos)
-- `src/services/projectService.ts` (renomear o atual para `processDraftService.ts` — só mexe com localStorage): `list()`, `get(id)`, `create({name, bpmnXml, activities})`, `update(id, patch)`, `remove(id)`.
-- `src/services/analysisService.ts`: `createForProject(projectId)`, `get(id)`.
+### Frontend
+- `authService.ts`: adicionar `requestPasswordReset(email)` e `resetPassword(token, password)`.
+- **Link "Esqueci minha senha"** abaixo do botão Entrar em `LoginForm.tsx`, apontando para `/forgot-password`.
+- Nova rota pública `src/routes/forgot-password.tsx`: form com e-mail, mensagem de sucesso genérica.
+- Nova rota pública `src/routes/reset-password.tsx`: lê `?token=...` da URL, form com nova senha + confirmação, chama API, redireciona para `/login` com toast.
+- Em dev, o backend devolve `resetUrl` no JSON para facilitar teste; em prod, só mensagem.
 
-### 7. Dashboard real (`src/pages/DashboardPage.tsx`)
-Usar `useQuery(['projects'], projectService.list)` para listar; manter empty state. Botão "Análises" leva para `/projects/$id/analyses` (rota nova simples listando) — opcional nesta fase: pode só mostrar a última análise.
+---
 
-### 8. Análise real no Modeler (`src/pages/ModelerPage.tsx`)
-Substituir o `handleAnalyze` (hoje só `toast.info`):
-1. `projectService.create({ name: processName, bpmnXml, activities })` (ou `update` se já existir id em estado local).
-2. `analysisService.createForProject(project.id)` — backend chama o n8n e retorna a análise pronta.
-3. `navigate({ to: "/analyses/$id", params: { id: analysis.id } })`.
-4. Tratar erros com `toast.error(message)`.
+## Detalhes técnicos
 
-### 9. Página de resultado (`src/routes/analyses.$id.tsx`)
-Nova rota protegida que busca `GET /api/analyses/:id` e exibe:
-- `summary`
-- listas de `bottlenecks`, `modelingIssues`, `improvementSuggestions`
-- `finalAssessment.score` + `explanation`
-- Estados `running`/`failed` (`error`).
+- **Roteamento**: criar a nova ajuda como `/guia` evita colisão com a `/ajuda` pública e mantém SEO da landing.
+- **Stack de e-mail**: não vou plugar provedor de e-mail agora; o backend só loga o link. Documentar no README que substituir por SMTP/Resend é trabalho futuro.
+- **Segurança**: tokens armazenados como hash, expiração curta, uso único, resposta neutra em forgot-password.
+- **Sem mudanças** em: BPMN modeler, análise IA, fluxo de Google login, schema de users/projects/analyses.
 
-UI simples reaproveitando cards/badges existentes; sem novo design system.
+## Fora de escopo
 
-### 10. Tipos (`src/@types/user.ts`)
-Adicionar `picture?: string`. Manter `SignupRequest` com `confirmPassword` (UI), mas `authService.signup` só envia `{name,email,password}`.
-
-## Variáveis de ambiente
-
-Adicionar ao README e a um `.env.example` na raiz do frontend:
-- `VITE_API_URL=http://localhost:3001`
-- `VITE_GOOGLE_CLIENT_ID=` (mesmo do backend `GOOGLE_CLIENT_ID`)
-
-## Não está no escopo
-
-- Refresh token / sessão SSR.
-- Telas de gestão completa de projetos (edição de metadados, exclusão em massa).
-- Histórico de análises por projeto (uma listagem simples pode ficar para depois).
-- Mudanças no backend Express (já está com as rotas necessárias).
-
-## Verificação
-
-1. `cd backend && npm run dev` + `npm run dev` no frontend.
-2. `/signup` cria conta real (linha em `users`), redireciona para `/dashboard`.
-3. `/login` com email/senha existente funciona; refresh mantém sessão via `GET /me`.
-4. Botão Google aparece se `VITE_GOOGLE_CLIENT_ID` definido e autentica.
-5. No modeler, "Analisar com IA" cria projeto + análise, navega para `/analyses/:id`, mostra resultado do n8n (ou erro amigável se webhook offline).
-6. Sem token, qualquer rota `_authenticated/*` redireciona para `/login`.
+- Envio real de e-mail (SMTP/Resend).
+- Alterações na landing page `/ajuda` (continua como está).
+- i18n.
