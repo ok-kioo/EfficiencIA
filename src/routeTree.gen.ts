@@ -10,11 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AjudaRouteImport } from './routes/ajuda'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedModelerRouteImport } from './routes/_authenticated.modeler'
+import { Route as AuthenticatedGuiaRouteImport } from './routes/_authenticated.guia'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedAnalysesIdRouteImport } from './routes/_authenticated.analyses.$id'
 import { Route as AuthenticatedProjectsIdAnalysesRouteImport } from './routes/_authenticated.projects.$id.analyses'
@@ -24,9 +27,19 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AjudaRoute = AjudaRouteImport.update({
@@ -46,6 +59,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedModelerRoute = AuthenticatedModelerRouteImport.update({
   id: '/modeler',
   path: '/modeler',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedGuiaRoute = AuthenticatedGuiaRouteImport.update({
+  id: '/guia',
+  path: '/guia',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -68,9 +86,12 @@ const AuthenticatedProjectsIdAnalysesRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ajuda': typeof AjudaRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/guia': typeof AuthenticatedGuiaRoute
   '/modeler': typeof AuthenticatedModelerRoute
   '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
   '/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
@@ -78,9 +99,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ajuda': typeof AjudaRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/guia': typeof AuthenticatedGuiaRoute
   '/modeler': typeof AuthenticatedModelerRoute
   '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
   '/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
@@ -90,9 +114,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/ajuda': typeof AjudaRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/guia': typeof AuthenticatedGuiaRoute
   '/_authenticated/modeler': typeof AuthenticatedModelerRoute
   '/_authenticated/analyses/$id': typeof AuthenticatedAnalysesIdRoute
   '/_authenticated/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
@@ -102,9 +129,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/ajuda'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/dashboard'
+    | '/guia'
     | '/modeler'
     | '/analyses/$id'
     | '/projects/$id/analyses'
@@ -112,9 +142,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/ajuda'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/dashboard'
+    | '/guia'
     | '/modeler'
     | '/analyses/$id'
     | '/projects/$id/analyses'
@@ -123,9 +156,12 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/ajuda'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/_authenticated/dashboard'
+    | '/_authenticated/guia'
     | '/_authenticated/modeler'
     | '/_authenticated/analyses/$id'
     | '/_authenticated/projects/$id/analyses'
@@ -135,7 +171,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AjudaRoute: typeof AjudaRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
 }
 
@@ -148,11 +186,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ajuda': {
@@ -183,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedModelerRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/guia': {
+      id: '/_authenticated/guia'
+      path: '/guia'
+      fullPath: '/guia'
+      preLoaderRoute: typeof AuthenticatedGuiaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -209,6 +268,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedGuiaRoute: typeof AuthenticatedGuiaRoute
   AuthenticatedModelerRoute: typeof AuthenticatedModelerRoute
   AuthenticatedAnalysesIdRoute: typeof AuthenticatedAnalysesIdRoute
   AuthenticatedProjectsIdAnalysesRoute: typeof AuthenticatedProjectsIdAnalysesRoute
@@ -216,6 +276,7 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedGuiaRoute: AuthenticatedGuiaRoute,
   AuthenticatedModelerRoute: AuthenticatedModelerRoute,
   AuthenticatedAnalysesIdRoute: AuthenticatedAnalysesIdRoute,
   AuthenticatedProjectsIdAnalysesRoute: AuthenticatedProjectsIdAnalysesRoute,
@@ -229,7 +290,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AjudaRoute: AjudaRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
