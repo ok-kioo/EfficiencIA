@@ -13,8 +13,26 @@ interface UseBpmnValidationParams {
 
 export type ValidationSeverity = "error" | "warning" | null;
 
+export interface DedupedViolation extends Violation {
+  count: number;
+}
+
+function dedupe(list: Violation[]): DedupedViolation[] {
+  const byKey = new Map<string, DedupedViolation>();
+  for (const v of list) {
+    const key = `${v.severity}|${v.rule}|${v.elementId}|${v.message}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      byKey.set(key, { ...v, count: 1 });
+    }
+  }
+  return Array.from(byKey.values());
+}
+
 export function useBpmnValidation({ modeler }: UseBpmnValidationParams) {
-  const [violations, setViolations] = useState<Violation[]>([]);
+  const [violations, setViolations] = useState<DedupedViolation[]>([]);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -23,7 +41,7 @@ export function useBpmnValidation({ modeler }: UseBpmnValidationParams) {
 
     function runValidation() {
       const result = validate(modeler);
-      setViolations(result);
+      setViolations(dedupe(result));
     }
 
     function scheduleValidation() {

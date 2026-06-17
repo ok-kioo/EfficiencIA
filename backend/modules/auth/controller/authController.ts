@@ -1,0 +1,48 @@
+import type { Request, Response, NextFunction } from "express";
+import {
+  emailLoginSchema,
+  emailSignupSchema,
+  googleLoginSchema,
+} from "../domain/Auth.js";
+import {
+  getCurrentUser,
+  loginWithEmail,
+  loginWithGoogle,
+  signupWithEmail,
+} from "../service/authService.js";
+
+export async function googleHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { idToken } = googleLoginSchema.parse(req.body);
+    res.json(await loginWithGoogle(idToken));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function signupHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email, password, name } = emailSignupSchema.parse(req.body);
+    res.status(201).json(await signupWithEmail(email, password, name));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function loginHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email, password } = emailLoginSchema.parse(req.body);
+    res.json(await loginWithEmail(email, password));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function meHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = await getCurrentUser(req.user!.id);
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}

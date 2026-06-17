@@ -1,11 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BpmnModelerLib from "bpmn-js/lib/Modeler";
 import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  CheckCircle2,
+  HelpCircle,
+  ListChecks,
+  MousePointerClick,
+  Sliders,
+} from "lucide-react";
 
 import { BpmnModeler, defaultBpmnXml } from "../components/bpmn/BpmnModeler";
 import { BpmnToolbar } from "../components/bpmn/BpmnToolBar";
 import { ProcessDataPanel } from "../components/process/ProcessDataPanel";
 import { ValidationPanel } from "../components/bpmn/ValidationPanel";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
 import type { ProcessActivity } from "../@types/processs";
 import {
   extractActivitiesFromBpmn,
@@ -16,7 +30,46 @@ import { loadDraft } from "../lib/modeler/autosave";
 import { useModelerAutosave } from "../hooks/useModelerAutosave";
 import { useBpmnValidation } from "../hooks/useBpmnValidation";
 
+type AnyObj = Record<string, unknown> & {
+  id: string;
+  type?: string;
+  businessObject?: { name?: string; $type?: string };
+};
+
+const FRIENDLY_TYPE: Record<string, string> = {
+  "bpmn:StartEvent": "Ponto de início",
+  "bpmn:EndEvent": "Ponto de fim",
+  "bpmn:IntermediateThrowEvent": "Evento durante o processo",
+  "bpmn:IntermediateCatchEvent": "Evento durante o processo",
+  "bpmn:Task": "Etapa do processo",
+  "bpmn:UserTask": "Etapa manual",
+  "bpmn:ServiceTask": "Etapa do sistema",
+  "bpmn:ScriptTask": "Etapa automática",
+  "bpmn:SendTask": "Envio de mensagem",
+  "bpmn:ReceiveTask": "Recebimento de mensagem",
+  "bpmn:ManualTask": "Etapa manual",
+  "bpmn:BusinessRuleTask": "Regra de negócio",
+  "bpmn:CallActivity": "Subprocesso",
+  "bpmn:SubProcess": "Subprocesso",
+  "bpmn:ExclusiveGateway": "Ponto de decisão (uma saída)",
+  "bpmn:InclusiveGateway": "Ponto de decisão (várias saídas)",
+  "bpmn:ParallelGateway": "Caminhos em paralelo",
+  "bpmn:EventBasedGateway": "Decisão por evento",
+  "bpmn:SequenceFlow": "Conexão entre etapas",
+  "bpmn:Participant": "Participante do processo",
+  "bpmn:Lane": "Área responsável",
+  "bpmn:DataObjectReference": "Documento / dado",
+  "bpmn:TextAnnotation": "Anotação",
+};
+
+function friendlyTypeOf(type?: string) {
+  if (!type) return "Elemento";
+  return FRIENDLY_TYPE[type] ?? type.replace(/^bpmn:/, "");
+}
+
 export function ModelerPage() {
+  const navigate = useNavigate();
+
   const initial = useMemo(() => {
     if (typeof window === "undefined") {
       return {
@@ -47,6 +100,12 @@ export function ModelerPage() {
   const [bpmnXml, setBpmnXml] = useState(initial.bpmnXml);
   const [activities, setActivities] = useState<ProcessActivity[]>(initial.activities);
   const [modeler, setModeler] = useState<BpmnModelerLib | null>(null);
+  const [selected, setSelected] = useState<{
+    id: string;
+    name: string;
+    type: string;
+  } | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const modelerRef = useRef<BpmnModelerLib | null>(null);
   const restoredToastRef = useRef(false);
 
@@ -57,6 +116,30 @@ export function ModelerPage() {
   });
 
   const { violations, focusElement, worstSeverity } = useBpmnValidation({ modeler });
+
+  // Track selection from the BPMN modeler.
+  useEffect(() => {
+    if (!modeler) return;
+    const eventBus = modeler.get("eventBus") as {
+      on: (e: string, cb: (p: { newSelection: AnyObj[] }) => void) => void;
+      off: (e: string, cb: (p: { newSelection: AnyObj[] }) => void) => void;
+    };
+    const onChange = (payload: { newSelection: AnyObj[] }) => {
+      const el = payload.newSelection?.[0];
+      if (!el) {
+        setSelected(null);
+        return;
+      }
+      const bo = el.businessObject;
+      setSelected({
+        id: el.id,
+        name: bo?.name || el.id,
+        type: bo?.$type || (el.type ?? ""),
+      });
+    };
+    eventBus.on("selection.changed", onChange);
+    return () => eventBus.off("selection.changed", onChange);
+  }, [modeler]);
 
   useEffect(() => {
     if (initial.restored && !restoredToastRef.current) {
@@ -93,12 +176,27 @@ export function ModelerPage() {
   }
 
   function handleDiscardDraft() {
-    if (!window.confirm("Descartar o rascunho salvo e voltar ao diagrama padrão?")) return;
     discard();
     setBpmnXml(defaultBpmnXml);
     setProcessName("Novo processo");
     setActivities([]);
-    toast.success("Rascunho descartado.");
+    toast.success("Rascunho descartado. Você voltou ao diagrama padrão.");
+  }
+
+  async function handleAnalyze() {
+    setAnalyzing(true);
+    try {
+      // TODO Fase 2: POST /api/projects/:id/analyses no backend Express,
+      // que envia o BPMN para o agente n8n e persiste o resultado.
+      toast.info(
+        "Em breve! A análise por IA será conectada ao backend nesta próxima etapa.",
+      );
+      // Quando estiver pronto:
+      // navigate({ to: "/projetos/$id/analises", params: { id: projectId } });
+      void navigate;
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   const autosaveLabel =
@@ -108,7 +206,7 @@ export function ModelerPage() {
         ? "Falha ao salvar automaticamente"
         : lastSavedAt
           ? `Salvo às ${new Date(lastSavedAt).toLocaleTimeString()}`
-          : "Autosave ativo";
+          : "Salva automaticamente";
 
   return (
     <div>
@@ -118,7 +216,7 @@ export function ModelerPage() {
             Modelagem do processo
           </h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Desenhe o fluxo BPMN e complemente cada atividade com dados operacionais.
+            Desenhe o fluxo e complemente cada etapa com dados operacionais.
           </p>
           <div className="mt-2 flex items-center gap-3 text-[11px] text-muted-foreground tabular">
             <span
@@ -137,15 +235,6 @@ export function ModelerPage() {
               />
               {autosaveLabel}
             </span>
-            {lastSavedAt && (
-              <button
-                type="button"
-                onClick={handleDiscardDraft}
-                className="text-[11px] font-medium text-muted-foreground underline-offset-2 transition hover:text-foreground hover:underline"
-              >
-                Descartar rascunho
-              </button>
-            )}
           </div>
         </div>
 
@@ -161,7 +250,14 @@ export function ModelerPage() {
         </div>
       </div>
 
-      <BpmnToolbar onImport={handleImport} onExport={handleExport} />
+      <BpmnToolbar
+        onImport={handleImport}
+        onExport={handleExport}
+        onAnalyze={handleAnalyze}
+        onDiscard={handleDiscardDraft}
+        canDiscard={Boolean(lastSavedAt)}
+        analyzing={analyzing}
+      />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_400px]">
         <BpmnModeler
@@ -171,13 +267,115 @@ export function ModelerPage() {
           validationSeverity={worstSeverity}
         />
 
-        <div className="flex flex-col gap-5">
-          <ValidationPanel violations={violations} onFocus={focusElement} />
-          <ProcessDataPanel
-            activities={activities}
-            onActivitiesChange={setActivities}
-          />
-        </div>
+        <aside className="max-h-[calc(100vh-200px)] overflow-y-auto rounded-xl border border-border bg-card">
+          <Accordion
+            type="multiple"
+            defaultValue={["elemento", "dados"]}
+            className="w-full"
+          >
+            <AccordionItem value="elemento" className="border-b border-border">
+              <AccordionTrigger className="px-4 py-3 text-sm font-semibold tracking-tight">
+                <span className="flex items-center gap-2">
+                  <MousePointerClick size={15} strokeWidth={1.75} className="text-primary" />
+                  Elemento selecionado
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                {selected ? (
+                  <div className="rounded-md border border-border bg-background p-3">
+                    <p className="text-[13px] font-semibold text-foreground">
+                      {selected.name || "(sem nome)"}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {friendlyTypeOf(selected.type)}
+                    </p>
+                    <p
+                      className="mt-2 truncate text-[10px] text-muted-foreground tabular opacity-60"
+                      title={selected.id}
+                    >
+                      ID: {selected.id}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="rounded-md border border-dashed border-border bg-background/50 px-3 py-4 text-center text-xs text-muted-foreground">
+                    Clique em uma etapa do fluxo para ver detalhes.
+                  </p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="dados" className="border-b border-border">
+              <AccordionTrigger className="px-4 py-3 text-sm font-semibold tracking-tight">
+                <span className="flex items-center gap-2">
+                  <Sliders size={15} strokeWidth={1.75} className="text-primary" />
+                  Dados operacionais
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <ProcessDataPanel
+                  activities={activities}
+                  selectedElementId={selected?.id ?? null}
+                  onActivitiesChange={setActivities}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="validacao" className="border-b border-border">
+              <AccordionTrigger className="px-4 py-3 text-sm font-semibold tracking-tight">
+                <span className="flex items-center gap-2">
+                  <ListChecks size={15} strokeWidth={1.75} className="text-primary" />
+                  Pontos a revisar
+                  {violations.length > 0 ? (
+                    <span
+                      className={`ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold ${
+                        worstSeverity === "error"
+                          ? "bg-destructive text-destructive-foreground"
+                          : worstSeverity === "warning"
+                            ? "bg-warning text-warning-foreground"
+                            : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {violations.length}
+                    </span>
+                  ) : (
+                    <CheckCircle2 size={14} className="text-primary" />
+                  )}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <ValidationPanel violations={violations} onFocus={focusElement} />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="ajuda" className="border-b-0">
+              <AccordionTrigger className="px-4 py-3 text-sm font-semibold tracking-tight">
+                <span className="flex items-center gap-2">
+                  <HelpCircle size={15} strokeWidth={1.75} className="text-primary" />
+                  Ajuda contextual
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <div className="space-y-2 text-xs leading-relaxed text-muted-foreground">
+                  <p>
+                    <strong className="text-foreground">Como começar:</strong>{" "}
+                    arraste o círculo "ponto de início" e conecte com setas até as etapas.
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Dica:</strong>{" "}
+                    selecione qualquer etapa para informar tempo médio, responsável e
+                    volume — esses dados deixam a análise da IA bem mais precisa.
+                  </p>
+                  <a
+                    href="/ajuda"
+                    className="mt-3 inline-flex items-center gap-1 rounded-md bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary transition hover:bg-primary/15"
+                  >
+                    Ver guia completo →
+                  </a>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </aside>
       </div>
     </div>
   );

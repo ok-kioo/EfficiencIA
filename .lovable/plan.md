@@ -1,67 +1,184 @@
-Reescrever as mensagens de validação em português claro, sem jargão BPMN, focando em "o que está errado + o que fazer".
 
-## 1. Mensagens em linguagem leiga
+# Plano de Evolução — Plataforma BPMN
 
-Substituir termos técnicos por equivalentes amigáveis em todas as mensagens de `SemanticValidator.ts` e `CustomRules.ts`:
+Entrega em duas fases dentro do mesmo plano. Estrutura final do repositório:
 
-| Termo técnico | Termo amigável |
-|---|---|
-| Start Event | "evento de início" (do processo) |
-| End Event | "evento de fim" |
-| Sequence Flow | "seta de fluxo" / "ligação" |
-| Boundary Event | "evento anexado" |
-| Task / CallActivity | "atividade" |
-| Gateway | "decisão" (exclusivo/inclusivo) ou "bifurcação paralela" |
-| Pool / Participant | "raia/pool" |
-| Message Flow | "mensagem entre raias" |
-| Artifact / DataObject | "anotação / objeto de dado" |
+```text
+/ (raiz)
+├── frontend/         (move-se o projeto TanStack atual pra cá)
+│   ├── src/
+│   ├── package.json
+│   └── .env          (VITE_API_URL, VITE_GOOGLE_CLIENT_ID)
+└── backend/
+    ├── infra/        (db pool, supabase admin, jwt, google verifier, logger)
+    ├── modules/
+    │   ├── auth/      {domain,service,controller,routes}
+    │   ├── users/     {domain,service,controller,routes}
+    │   ├── projects/  {domain,service,controller,routes}
+    │   └── analyses/  {domain,service,controller,routes}
+    ├── migrations/   (SQL versionado p/ Postgres Supabase)
+    ├── server.ts
+    ├── package.json
+    └── .env          (DATABASE_URL, JWT_SECRET, GOOGLE_CLIENT_ID, N8N_WEBHOOK_URL, PORT)
+```
 
-**Exemplos de reescrita** (todas terão dois pedaços: problema + sugestão):
+Observação importante: como o backend será Express local + n8n em `http://localhost:5678`, o preview hospedado da Lovable só mostrará a UI. Para login, persistência e análises você precisa rodar `cd backend && npm run dev` e `cd frontend && npm run dev` localmente, com `VITE_API_URL=http://localhost:3001`.
 
-- `process.no_start`: "Este processo não tem um ponto de início. Adicione um evento de início (círculo fino) para indicar onde o fluxo começa."
-- `process.no_end`: "Este processo não termina em lugar nenhum. Adicione um evento de fim (círculo grosso) para fechar o fluxo."
-- `end.no_incoming`: "O evento de fim está solto. Conecte uma seta vindo de alguma atividade ou decisão até ele."
-- `start.no_outgoing`: "O evento de início não sai para lugar nenhum. Puxe uma seta dele até a primeira atividade."
-- `task.isolated`: "Esta atividade está solta no diagrama. Conecte-a ao restante do processo com setas de entrada e saída."
-- `task.no_incoming`: "Esta atividade não recebe nenhuma seta de entrada. Indique de onde o fluxo chega até ela."
-- `task.no_outgoing`: "Esta atividade não tem saída. Indique para onde o fluxo segue depois dela."
-- `task.unnamed`: "Esta atividade está sem nome. Dê um nome curto que descreva o que é feito (ex.: 'Aprovar pedido')."
-- `gateway.no_branches`: "Esta decisão não está dividindo nem juntando caminhos. Use-a com pelo menos 2 saídas (para escolher um caminho) ou 2 entradas (para juntar caminhos)."
-- `parallel.no_branches`: "Esta bifurcação paralela precisa abrir ou fechar caminhos. Conecte ao menos 2 entradas ou 2 saídas."
-- `event_gateway.few_alternatives`: "Esta decisão por eventos precisa de pelo menos 2 alternativas (eventos que podem acontecer)."
-- `event_gateway.converging`: "Decisões por eventos servem só para abrir caminhos, não para juntar. Use outra decisão para convergir."
-- `complex.no_branches`: "Esta decisão complexa precisa de múltiplos caminhos de entrada ou saída."
-- `intermediate.degree`: "Um evento intermediário deve ter exatamente uma seta chegando e uma saindo."
-- `flow.missing_endpoint`: "Esta seta está solta — falta a ponta de origem ou de destino."
-- `flow.self_loop`: "Esta seta liga um elemento a ele mesmo. Remova-a ou redirecione para outro elemento."
-- `parallel.conditional_flow`: "Setas que saem de uma bifurcação paralela não podem ter condição — todas seguem juntas."
-- `graph.unreachable`: "Este elemento está em um trecho do diagrama que nunca é alcançado a partir do início."
-- `graph.deadlock`: "A partir deste elemento não há como chegar ao fim do processo (caminho sem saída)."
-- `graph.gateway_cycle`: "Há um laço (loop) formado apenas por decisões, sem nenhuma atividade no meio. Inclua ao menos uma atividade no ciclo."
-- `boundary.no_host`: "Este evento anexado está flutuando. Encoste-o na borda de uma atividade."
-- `id.duplicate`: "Identificador duplicado no diagrama (`{id}`). Isto pode causar erros ao exportar."
+---
 
-E em `CustomRules.ts` (toasts ao bloquear ação):
-- `flow.self_loop`: "Não dá para ligar um elemento a ele mesmo."
-- `flow.pool_to_pool`: "Raias não se conectam diretamente. Use uma mensagem entre elementos dentro das raias."
-- `flow.cross_process`: "Setas de fluxo só ligam elementos do mesmo processo."
-- `start.incoming_forbidden`: "Eventos de início não recebem setas — eles começam o fluxo."
-- `end.outgoing_forbidden`: "Eventos de fim não têm saída — eles encerram o fluxo."
-- `event_gateway.invalid_target`: "Decisões por evento só ligam a eventos intermediários ou tarefas de recebimento."
-- `boundary.host.invalid`: "Eventos anexados precisam ser colocados na borda de uma atividade."
-- `flow.artifact_to_artifact`: "Anotações e objetos de dado não se ligam entre si por fluxo."
+## FASE 1 — UX e refactor do frontend
 
-## 2. Painel de Validação mais claro
+### 1. Landing page pública `/`
+- Nova rota `src/routes/index.tsx` (substitui a atual): hero com proposta de valor, sem jargão BPMN, paleta Emerald Prestige, tipografia Sora/Manrope já definida.
+- Seções: Hero + CTA, "Como funciona" (3 passos visuais), "Análise inteligente" (diferenciais), CTA final.
+- CTAs: "Criar conta" → `/signup`, "Entrar" → `/login`, "Começar um novo fluxo" → `/modeler` (cai no gate `_authenticated`).
+- Responsivo mobile-first; SEO com `head()` (title, description, og).
+- Dashboard atual vira `/_authenticated/dashboard` (em vez de `/`).
 
-`src/components/bpmn/ValidationPanel.tsx`:
-- Renomear severidades: `Erros` → "Precisa corrigir", `Avisos` → "Sugestões", `Notas` → "Dicas".
-- Tooltip nos contadores do header com o nome completo (`title=`).
-- Esconder o `v.rule` técnico da linha (ex.: `task.no_incoming`) — manter só o nome do elemento. O `rule` fica em `title=` no botão pra quem precisar inspecionar.
-- Estado vazio: trocar "Diagrama sintaticamente válido." por "Tudo certo — o diagrama está consistente."
-- Header: "X violações." → "X ponto(s) a revisar." / "Sem problemas detectados."
+### 2. Página de ajuda `/ajuda`
+- Rota pública nova `src/routes/ajuda.tsx`.
+- Conteúdo: intro à modelagem, glossário leigo dos elementos (ponto de início, etapa, ponto de decisão, conexão, participante, área responsável), quando usar cada um, exemplos do cotidiano, FAQ, boas práticas.
+- Link visível no header e no painel de ajuda contextual da modelagem.
+
+### 3. Refatorar painel lateral do Modeler
+- Substituir empilhamento atual por **Accordion** (shadcn) com a ordem fixa:
+  1. **Elemento selecionado** (nome/tipo amigável + ID escondido em hover) — aberto por padrão.
+  2. **Dados Operacionais** — aberto por padrão; vazio mostra "Selecione uma etapa do fluxo para informar dados operacionais."; renderiza form só quando há seleção; troca de seleção atualiza sem desmontar (preserva valores via cache por elementId no `ProcessDataPanel`).
+  3. **Validação BPMN** — fechado por padrão; badge com contagem.
+  4. **Ajuda contextual** — fechado; link "Ver guia completo" → `/ajuda`.
+- Remove divs aninhadas que causam overflow vertical; painel com `overflow-y-auto` único.
+
+### 4. Dedupe de validações
+- No `useBpmnValidation` (ou no `ValidationPanel`): chave `${rule}|${elementId}|${message}`; consolidar e mostrar contador "×N" quando houver repetidas. Mantém ordenação por severidade.
+
+### 5. Botão "Descartar rascunho"
+- Mover do menu/canto atual para ao lado de "Exportar" no `BpmnToolBar`.
+- Ícone `Trash2` (lucide).
+- `AlertDialog` (shadcn) com texto: "Tem certeza de que deseja descartar este rascunho? Essa ação não poderá ser desfeita." Botões: "Cancelar" / "Sim, descartar".
+
+### 6. Linguagem leiga
+- Varredura final em `BpmnToolBar`, `ValidationPanel`, `ProcessDataPanel`, `SemanticValidator`, `CustomRules`, header do canvas: substituir Gateway/Pool/Lane/Sequence Flow/Event por termos amigáveis (ponto de decisão, participante, área responsável, conexão, evento durante o processo).
+- Tooltips (shadcn `Tooltip`) onde termo técnico for inevitável.
+
+### 7. Remoção da aba Cenários
+- Apagar: `src/pages/ScenariosPage.tsx`, `src/routes/_authenticated.scenarios.tsx`, item do `Sidebar`, qualquer import órfão.
+- Verificar `routeTree.gen.ts` (regenera sozinho), `Sidebar.tsx`, `Header.tsx`.
+
+### 8. Botão "Analisar" no Modeler
+- Adicionar no `BpmnToolBar` (entre Salvar e Exportar): chama autosave → POST `/projects/:id/analyses` no backend → navega para `/_authenticated/projetos/$id/analises`.
+- Estado de loading + toast de erro.
+
+---
+
+## FASE 2 — Backend Express + Supabase + n8n
+
+### 9. Reorganização do repositório
+- Mover o projeto atual inteiro para `frontend/` (`mv` de tudo exceto `.git`, `backend/` futuro, READMEs raiz).
+- Criar `package.json` raiz com workspaces (`"workspaces": ["frontend", "backend"]`) só para conveniência de scripts — Lovable continua buildando `frontend/`.
+- README raiz explicando como rodar.
+
+### 10. Backend Express (`backend/`)
+- Stack: Node 20, TypeScript, Express 4, `pg` (cliente Postgres), `jsonwebtoken`, `google-auth-library` (verifica `id_token`), `zod`, `cors`, `helmet`, `morgan`, `dotenv`, `tsx` (dev) / `tsc` (build).
+- `server.ts`: monta CORS (origin = `FRONTEND_URL`), registra rotas dos 4 módulos sob `/api/auth`, `/api/users`, `/api/projects`, `/api/analyses`. Health em `/health`.
+- `infra/`:
+  - `db.ts` — pool `pg` apontando para `DATABASE_URL` do Supabase (connection string Postgres).
+  - `jwt.ts` — `sign(userId)` / `verify(token)`; expiração 7d.
+  - `google.ts` — verifica `id_token` Google contra `GOOGLE_CLIENT_ID`, retorna `{ sub, email, name, picture }`.
+  - `authMiddleware.ts` — extrai `Authorization: Bearer`, valida JWT, injeta `req.user`.
+  - `n8n.ts` — POST para `N8N_WEBHOOK_URL` (default `http://localhost:5678/webhook/assist-bpmn`).
+  - `errors.ts` — handler central com formato `{ error, message }`.
+- Padrão de cada módulo (ex.: `projects/`):
+  - `domain/Project.ts` — tipos + schemas zod.
+  - `service/projectService.ts` — regras de negócio + queries `pg`.
+  - `controller/projectController.ts` — handlers Express puros.
+  - `routes/index.ts` — `Router()` montando os endpoints.
+
+### 11. Migrations (Postgres via Supabase)
+SQL versionado em `backend/migrations/` (executados via `psql` ou script `npm run migrate`; também aplicáveis pelo Supabase MCP):
+
+- `001_users.sql` — `users(id uuid pk, google_sub text unique, email text unique, name text, picture text, created_at)`.
+- `002_projects.sql` — `projects(id uuid pk, user_id uuid fk, name text, description text, bpmn_xml text, updated_at, created_at)`; index por `user_id`.
+- `003_analyses.sql` — `analyses(id uuid pk, project_id uuid fk, status text check in ('pending','running','done','failed'), summary text, bottlenecks jsonb, modeling_issues jsonb, improvement_suggestions jsonb, final_assessment jsonb, error text, created_at, finished_at)`.
+
+Sem RLS (acesso só via backend com service role / pool direto). Documentar variáveis necessárias no README do backend.
+
+### 12. Endpoints
+
+**Auth (`/api/auth`)** — públicos:
+- `POST /google` — body `{ idToken }`; verifica via Google, upsert em `users`, retorna `{ token, user }`.
+- `POST /signup` — `{ email, password, name }` (fallback email/senha com bcrypt) — opcional, marcar TODO se priorizar OAuth.
+- `POST /login` — `{ email, password }`.
+- `GET /me` — protegido; retorna usuário atual.
+
+**Projects (`/api/projects`)** — protegidos:
+- `GET /` — lista do usuário.
+- `POST /` — cria `{ name, description?, bpmnXml? }`.
+- `GET /:id` — detalhe (ownership check).
+- `PUT /:id` — atualiza `name/description/bpmnXml` (autosave).
+- `DELETE /:id`.
+
+**Analyses (`/api/analyses` + nested em projects)** — protegidos:
+- `GET /api/projects/:id/analyses` — lista análises do projeto.
+- `POST /api/projects/:id/analyses` — cria registro `status='running'`, dispara n8n em background (sync await por simplicidade no MVP), grava resposta no formato exigido, atualiza para `done` ou `failed`. Retorna a análise.
+- `GET /api/analyses/:id`.
+
+Formato persistido e devolvido segue exatamente:
+```json
+{ "summary": "", "bottlenecks": [], "modelingIssues": [], "improvementSuggestions": [], "finalAssessment": { "score": 0, "explanation": "" } }
+```
+
+### 13. Frontend — integração
+- `frontend/.env` adiciona `VITE_API_URL`, `VITE_GOOGLE_CLIENT_ID`.
+- Novo `src/services/api.ts` — cliente `fetch` com base URL, injeta `Authorization: Bearer <token>` do `localStorage`.
+- Login/Signup:
+  - Substitui forms atuais por botão "Entrar com Google" usando `@react-oauth/google` (`GoogleOAuthProvider` no root + `GoogleLogin` no `LoginForm`). Recebe `credential` (id_token) → POST `/api/auth/google` → salva token → redireciona dashboard.
+  - Manter form email/senha como secundário (opcional).
+- `AuthContext` passa a guardar `{ user, token }` vindos do backend; gate `_authenticated` checa token (valida via `/api/auth/me` no mount).
+- Dashboard (`/_authenticated/dashboard`): lista projetos via `GET /api/projects`; cards com nome, data, botões "Abrir", "Excluir", "Análises". Botão "Novo projeto" cria e abre modeler.
+- Modeler autosave (`useModelerAutosave`): troca chamadas locais por `PUT /api/projects/:id` debounced.
+- Tela de Análises: nova rota `src/routes/_authenticated.projetos.$id.analises.tsx`.
+  - Lista análises do projeto; cada item expande para mostrar Resumo, Gargalos, Problemas de modelagem, Sugestões, Pontuação + explicação — UI amigável (Cards + Badges, sem JSON cru).
+  - Botão "Nova análise" dispara fluxo (autosave do modeler se estiver lá; aqui só POST).
+  - Estado vazio: "Este projeto ainda não foi analisado." + botão "Iniciar primeira análise".
+  - Estado `running`: skeleton + polling a cada 2s até `done|failed`.
+- Botão "Analisar" no Modeler segue o fluxo definido na Fase 1 item 8.
+
+### 14. Variáveis de ambiente
+
+`backend/.env.example`:
+```text
+PORT=3001
+FRONTEND_URL=http://localhost:5173
+DATABASE_URL=postgresql://postgres:...@db.<ref>.supabase.co:5432/postgres
+JWT_SECRET=troque-isto
+GOOGLE_CLIENT_ID=...
+N8N_WEBHOOK_URL=http://localhost:5678/webhook/assist-bpmn
+```
+
+`frontend/.env.example`:
+```text
+VITE_API_URL=http://localhost:3001/api
+VITE_GOOGLE_CLIENT_ID=...
+```
+
+### 15. Scripts
+- Raiz `package.json`: `"dev": "concurrently \"npm:dev:*\""`, `"dev:frontend"`, `"dev:backend"`, `"migrate"`.
+- Backend: `dev` (tsx watch), `build` (tsc), `start`, `migrate` (executa SQL na ordem).
+
+---
+
+## Notas técnicas
+
+- A Lovable build/preview continuará apontada para `frontend/` — backend não roda no Worker.
+- Google OAuth: usuário precisa criar Client ID em console.cloud.google.com e configurar origens `http://localhost:5173`. Eu deixo instruções no README.
+- n8n: backend trata timeout (30s) e falha graciosamente (status `failed` + mensagem).
+- Sem mocks de IA; se n8n estiver offline, a análise simplesmente entra como `failed` e a UI mostra "Não foi possível conectar ao agente de análise. Verifique se o n8n está rodando."
+- Linguagem em pt-BR em todas as mensagens visíveis.
 
 ## Fora de escopo
+- Deploy do backend em produção.
+- Edição colaborativa em tempo real.
+- Roles/permissões além de "dono do projeto".
+- Recuperação de senha (se mantivermos email/senha como fallback, marcar TODO).
 
-- Não muda lógica de validação nem regras (somente strings).
-- Não muda IDs de `rule` (continuam estáveis pra debug).
-- Não toca em `types.ts`, hooks, autosave, design system.
+Após sua aprovação eu começo pela Fase 1 (UX + remoção de Cenários), e na sequência Fase 2 (mover para monorepo + backend + integração).

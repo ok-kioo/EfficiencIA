@@ -1,16 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  BarChart3,
-  GitBranch,
-  LayoutDashboard,
-  WandSparkles,
-} from "lucide-react";
+import { GitBranch, HelpCircle, LayoutDashboard } from "lucide-react";
 
 const menuItems = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard },
+  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Modelagem", path: "/modeler", icon: GitBranch },
-  { label: "Análise", path: "/analysis", icon: BarChart3 },
-  { label: "Cenários", path: "/scenarios", icon: WandSparkles },
+  { label: "Ajuda", path: "/ajuda", icon: HelpCircle },
 ] as const;
 
 export function Sidebar() {
@@ -19,16 +13,20 @@ export function Sidebar() {
   return (
     <aside className="hidden min-h-screen w-[220px] shrink-0 border-r border-sidebar-border bg-sidebar px-3 py-5 md:block">
       <div className="mb-6 px-2">
-        <h1 className="font-display text-base font-semibold tracking-tight text-foreground">
-          EfficiencIA
-        </h1>
-        <p className="text-[11px] text-muted-foreground">Modelagem organizacional</p>
+        <Link to="/" className="block">
+          <h1 className="font-display text-base font-semibold tracking-tight text-foreground">
+            EfficiencIA
+          </h1>
+          <p className="text-[11px] text-muted-foreground">Processos com clareza</p>
+        </Link>
       </div>
 
       <nav className="space-y-0.5">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const active = pathname === item.path;
+          const active =
+            pathname === item.path ||
+            (item.path === "/dashboard" && pathname === "/dashboard/");
 
           return (
             <Link

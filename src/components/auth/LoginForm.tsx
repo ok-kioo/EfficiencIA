@@ -18,7 +18,7 @@ export function LoginForm() {
     e.preventDefault();
     try {
       await login(formData);
-      navigate({ to: "/" });
+      navigate({ to: "/dashboard" });
     } catch {
       /* erro tratado no contexto */
     }
