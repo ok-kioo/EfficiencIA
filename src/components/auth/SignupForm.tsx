@@ -38,7 +38,7 @@ export function SignupForm() {
     e.preventDefault();
     try {
       await signup(formData);
-      navigate({ to: "/" });
+      navigate({ to: "/dashboard" });
     } catch {
       /* erro tratado no contexto */
     }
