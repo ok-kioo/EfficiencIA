@@ -13,9 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
-import { Route as AuthenticatedScenariosRouteImport } from './routes/_authenticated.scenarios'
 import { Route as AuthenticatedModelerRouteImport } from './routes/_authenticated.modeler'
-import { Route as AuthenticatedAnalysisRouteImport } from './routes/_authenticated.analysis'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -36,19 +34,9 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedScenariosRoute = AuthenticatedScenariosRouteImport.update({
-  id: '/scenarios',
-  path: '/scenarios',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedModelerRoute = AuthenticatedModelerRouteImport.update({
   id: '/modeler',
   path: '/modeler',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAnalysisRoute = AuthenticatedAnalysisRouteImport.update({
-  id: '/analysis',
-  path: '/analysis',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 
@@ -56,16 +44,12 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/analysis': typeof AuthenticatedAnalysisRoute
   '/modeler': typeof AuthenticatedModelerRoute
-  '/scenarios': typeof AuthenticatedScenariosRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/analysis': typeof AuthenticatedAnalysisRoute
   '/modeler': typeof AuthenticatedModelerRoute
-  '/scenarios': typeof AuthenticatedScenariosRoute
   '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
@@ -73,30 +57,20 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/_authenticated/analysis': typeof AuthenticatedAnalysisRoute
   '/_authenticated/modeler': typeof AuthenticatedModelerRoute
-  '/_authenticated/scenarios': typeof AuthenticatedScenariosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/login'
-    | '/signup'
-    | '/analysis'
-    | '/modeler'
-    | '/scenarios'
+  fullPaths: '/' | '/login' | '/signup' | '/modeler'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/signup' | '/analysis' | '/modeler' | '/scenarios' | '/'
+  to: '/login' | '/signup' | '/modeler' | '/'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
     | '/signup'
-    | '/_authenticated/analysis'
     | '/_authenticated/modeler'
-    | '/_authenticated/scenarios'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
@@ -136,13 +110,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/scenarios': {
-      id: '/_authenticated/scenarios'
-      path: '/scenarios'
-      fullPath: '/scenarios'
-      preLoaderRoute: typeof AuthenticatedScenariosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/modeler': {
       id: '/_authenticated/modeler'
       path: '/modeler'
@@ -150,27 +117,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedModelerRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/analysis': {
-      id: '/_authenticated/analysis'
-      path: '/analysis'
-      fullPath: '/analysis'
-      preLoaderRoute: typeof AuthenticatedAnalysisRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
   }
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedAnalysisRoute: typeof AuthenticatedAnalysisRoute
   AuthenticatedModelerRoute: typeof AuthenticatedModelerRoute
-  AuthenticatedScenariosRoute: typeof AuthenticatedScenariosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedAnalysisRoute: AuthenticatedAnalysisRoute,
   AuthenticatedModelerRoute: AuthenticatedModelerRoute,
-  AuthenticatedScenariosRoute: AuthenticatedScenariosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
