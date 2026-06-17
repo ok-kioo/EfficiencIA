@@ -3,6 +3,7 @@ import { useNavigate, Link } from "@tanstack/react-router";
 import { Mail, Lock, AlertCircle, Loader } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import type { LoginRequest } from "../../@types/user";
+import { GoogleButton } from "./GoogleButton";
 
 export function LoginForm() {
   const navigate = useNavigate();
@@ -85,6 +86,8 @@ export function LoginForm() {
           "Entrar"
         )}
       </button>
+
+      <GoogleButton />
 
       <p className="text-center text-xs text-muted-foreground">
         Não tem uma conta?{" "}
