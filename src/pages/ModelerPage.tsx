@@ -160,6 +160,23 @@ export function ModelerPage() {
     setActivities((current) => mergeExtractedActivities(current, extractedActivities));
   }, [bpmnXml]);
 
+  useEffect(() => {
+    if (!initialProjectId) return;
+    let cancelled = false;
+    projectService
+      .get(initialProjectId)
+      .then((p) => {
+        if (cancelled) return;
+        setProcessName(p.name);
+        if (p.bpmn_xml) setBpmnXml(p.bpmn_xml);
+        if (Array.isArray(p.activities)) setActivities(p.activities as ProcessActivity[]);
+      })
+      .catch(() => toast.error("Não foi possível carregar o projeto."));
+    return () => {
+      cancelled = true;
+    };
+  }, [initialProjectId]);
+
   function handleModelerReady(m: BpmnModelerLib) {
     modelerRef.current = m;
     setModeler(m);
