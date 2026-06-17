@@ -16,6 +16,8 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedModelerRouteImport } from './routes/_authenticated.modeler'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedAnalysesIdRouteImport } from './routes/_authenticated.analyses.$id'
+import { Route as AuthenticatedProjectsIdAnalysesRouteImport } from './routes/_authenticated.projects.$id.analyses'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -51,6 +53,17 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAnalysesIdRoute = AuthenticatedAnalysesIdRouteImport.update({
+  id: '/analyses/$id',
+  path: '/analyses/$id',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedProjectsIdAnalysesRoute =
+  AuthenticatedProjectsIdAnalysesRouteImport.update({
+    id: '/projects/$id/analyses',
+    path: '/projects/$id/analyses',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +72,8 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/modeler': typeof AuthenticatedModelerRoute
+  '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
+  '/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -67,6 +82,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/modeler': typeof AuthenticatedModelerRoute
+  '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
+  '/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,12 +94,30 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/modeler': typeof AuthenticatedModelerRoute
+  '/_authenticated/analyses/$id': typeof AuthenticatedAnalysesIdRoute
+  '/_authenticated/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ajuda' | '/login' | '/signup' | '/dashboard' | '/modeler'
+  fullPaths:
+    | '/'
+    | '/ajuda'
+    | '/login'
+    | '/signup'
+    | '/dashboard'
+    | '/modeler'
+    | '/analyses/$id'
+    | '/projects/$id/analyses'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ajuda' | '/login' | '/signup' | '/dashboard' | '/modeler'
+  to:
+    | '/'
+    | '/ajuda'
+    | '/login'
+    | '/signup'
+    | '/dashboard'
+    | '/modeler'
+    | '/analyses/$id'
+    | '/projects/$id/analyses'
   id:
     | '__root__'
     | '/'
@@ -92,6 +127,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/_authenticated/dashboard'
     | '/_authenticated/modeler'
+    | '/_authenticated/analyses/$id'
+    | '/_authenticated/projects/$id/analyses'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,17 +190,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/analyses/$id': {
+      id: '/_authenticated/analyses/$id'
+      path: '/analyses/$id'
+      fullPath: '/analyses/$id'
+      preLoaderRoute: typeof AuthenticatedAnalysesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/projects/$id/analyses': {
+      id: '/_authenticated/projects/$id/analyses'
+      path: '/projects/$id/analyses'
+      fullPath: '/projects/$id/analyses'
+      preLoaderRoute: typeof AuthenticatedProjectsIdAnalysesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedModelerRoute: typeof AuthenticatedModelerRoute
+  AuthenticatedAnalysesIdRoute: typeof AuthenticatedAnalysesIdRoute
+  AuthenticatedProjectsIdAnalysesRoute: typeof AuthenticatedProjectsIdAnalysesRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedModelerRoute: AuthenticatedModelerRoute,
+  AuthenticatedAnalysesIdRoute: AuthenticatedAnalysesIdRoute,
+  AuthenticatedProjectsIdAnalysesRoute: AuthenticatedProjectsIdAnalysesRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
