@@ -33,3 +33,12 @@ export async function getHandler(req: Request, res: Response, next: NextFunction
     next(err);
   }
 }
+
+export async function listRecentHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const limit = Math.min(Number(req.query.limit ?? 5) || 5, 20);
+    res.json(await service.listRecent(req.user!.id, limit));
+  } catch (err) {
+    next(err);
+  }
+}
