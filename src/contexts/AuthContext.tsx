@@ -1,22 +1,18 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import type { User, AuthResponse, LoginRequest, SignupRequest } from "../@types/user";
+import type { User, LoginRequest, SignupRequest } from "../@types/user";
 import { authService } from "../services/authService";
-
-const DEMO_USER: User = {
-  id: "demo-user",
-  name: "Usuário Demo",
-  email: "demo@efficiencia.local",
-  createdAt: new Date().toISOString(),
-};
+import { extractApiError } from "../services/api";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isHydrating: boolean;
   error: string | null;
   login: (data: LoginRequest) => Promise<void>;
   signup: (data: SignupRequest) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
 }
@@ -24,74 +20,73 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(DEMO_USER);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    authService.initializeToken();
-    const storedUser = authService.getUser();
-    setUser(storedUser ?? DEMO_USER);
+    const token = authService.getToken();
+    if (!token) {
+      setIsHydrating(false);
+      return;
+    }
+    const cached = authService.getUser();
+    if (cached) setUser(cached);
+    authService
+      .me()
+      .then((u) => setUser(u))
+      .catch(() => {
+        authService.logout();
+        setUser(null);
+      })
+      .finally(() => setIsHydrating(false));
   }, []);
 
-  const login = async (data: LoginRequest) => {
+  const wrap = async (fn: () => Promise<User>) => {
     try {
       setError(null);
       setIsLoading(true);
-      const response: AuthResponse = await authService.login(data);
-      setUser(response.user);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao fazer login";
-      setError(errorMessage);
+      const u = await fn();
+      setUser(u);
+    } catch (err) {
+      const msg = extractApiError(err, "Não foi possível autenticar.");
+      setError(msg);
       throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signup = async (data: SignupRequest) => {
-    try {
-      setError(null);
-      setIsLoading(true);
-      const response: AuthResponse = await authService.signup(data);
-      setUser(response.user);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Erro ao fazer cadastro";
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const login = (data: LoginRequest) => wrap(async () => (await authService.login(data)).user);
+  const signup = (data: SignupRequest) => wrap(async () => (await authService.signup(data)).user);
+  const loginWithGoogle = (idToken: string) =>
+    wrap(async () => (await authService.loginWithGoogle(idToken)).user);
 
   const logout = () => {
     authService.logout();
-    setUser(DEMO_USER);
-    setError(null);
-  };
-
-  const clearError = () => {
+    setUser(null);
     setError(null);
   };
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: true,
+    isAuthenticated: !!user,
     isLoading,
+    isHydrating,
     error,
     login,
     signup,
+    loginWithGoogle,
     logout,
-    clearError,
+    clearError: () => setError(null),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+  return ctx;
 }

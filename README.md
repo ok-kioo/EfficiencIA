@@ -26,10 +26,10 @@ npm run migrate        # cria as tabelas no Postgres
 npm run dev            # http://localhost:3001
 ```
 
-Configure no frontend (`.env` na raiz):
+Configure no frontend (`.env` na raiz, copie de `.env.example`):
 ```
-VITE_API_URL=http://localhost:3001/api
-VITE_GOOGLE_CLIENT_ID=<mesmo client id do backend>
+VITE_API_URL=http://localhost:3001
+VITE_GOOGLE_CLIENT_ID=<mesmo client id do backend, deixe vazio para esconder o botão>
 ```
 
 ## Backend — visão geral

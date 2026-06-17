@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import BpmnModelerLib from "bpmn-js/lib/Modeler";
 import { toast } from "sonner";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   CheckCircle2,
   HelpCircle,
@@ -29,6 +29,9 @@ import { downloadFile } from "../utils/downloadFile";
 import { loadDraft } from "../lib/modeler/autosave";
 import { useModelerAutosave } from "../hooks/useModelerAutosave";
 import { useBpmnValidation } from "../hooks/useBpmnValidation";
+import { projectService } from "../services/projectService";
+import { analysisService } from "../services/analysisService";
+import { extractApiError } from "../services/api";
 
 type AnyObj = Record<string, unknown> & {
   id: string;
@@ -69,6 +72,9 @@ function friendlyTypeOf(type?: string) {
 
 export function ModelerPage() {
   const navigate = useNavigate();
+  const { projectId: initialProjectId } = useSearch({
+    from: "/_authenticated/modeler",
+  }) as { projectId?: string };
 
   const initial = useMemo(() => {
     if (typeof window === "undefined") {
@@ -100,6 +106,7 @@ export function ModelerPage() {
   const [bpmnXml, setBpmnXml] = useState(initial.bpmnXml);
   const [activities, setActivities] = useState<ProcessActivity[]>(initial.activities);
   const [modeler, setModeler] = useState<BpmnModelerLib | null>(null);
+  const [projectId, setProjectId] = useState<string | undefined>(initialProjectId);
   const [selected, setSelected] = useState<{
     id: string;
     name: string;
@@ -153,6 +160,23 @@ export function ModelerPage() {
     setActivities((current) => mergeExtractedActivities(current, extractedActivities));
   }, [bpmnXml]);
 
+  useEffect(() => {
+    if (!initialProjectId) return;
+    let cancelled = false;
+    projectService
+      .get(initialProjectId)
+      .then((p) => {
+        if (cancelled) return;
+        setProcessName(p.name);
+        if (p.bpmn_xml) setBpmnXml(p.bpmn_xml);
+        if (Array.isArray(p.activities)) setActivities(p.activities as ProcessActivity[]);
+      })
+      .catch(() => toast.error("Não foi possível carregar o projeto."));
+    return () => {
+      cancelled = true;
+    };
+  }, [initialProjectId]);
+
   function handleModelerReady(m: BpmnModelerLib) {
     modelerRef.current = m;
     setModeler(m);
@@ -186,14 +210,34 @@ export function ModelerPage() {
   async function handleAnalyze() {
     setAnalyzing(true);
     try {
-      // TODO Fase 2: POST /api/projects/:id/analyses no backend Express,
-      // que envia o BPMN para o agente n8n e persiste o resultado.
-      toast.info(
-        "Em breve! A análise por IA será conectada ao backend nesta próxima etapa.",
-      );
-      // Quando estiver pronto:
-      // navigate({ to: "/projetos/$id/analises", params: { id: projectId } });
-      void navigate;
+      let pid = projectId;
+      if (pid) {
+        await projectService.update(pid, {
+          name: processName,
+          bpmnXml,
+          activities,
+        });
+      } else {
+        const created = await projectService.create({
+          name: processName || "Novo processo",
+          bpmnXml,
+          activities,
+        });
+        pid = created.id;
+        setProjectId(pid);
+      }
+
+      toast.info("Enviando para análise da IA…");
+      const analysis = await analysisService.createForProject(pid);
+
+      if (analysis.status === "failed") {
+        toast.error(analysis.error || "A análise falhou.");
+      } else {
+        toast.success("Análise concluída!");
+      }
+      navigate({ to: "/analyses/$id", params: { id: analysis.id } });
+    } catch (err) {
+      toast.error(extractApiError(err, "Não foi possível analisar o processo."));
     } finally {
       setAnalyzing(false);
     }

@@ -4,77 +4,53 @@ import type { AuthResponse, LoginRequest, SignupRequest, User } from "../@types/
 const TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";
 
-function buildDemoResponse(email: string, name?: string): AuthResponse {
-  const normalizedEmail = email.trim() || "demo@efficiencia.local";
-  const demoName = name?.trim() || normalizedEmail.split("@")[0] || "Usuário Demo";
-
-  return {
-    token: "demo-token",
-    user: {
-      id: `demo-${Date.now()}`,
-      name: demoName,
-      email: normalizedEmail,
-      createdAt: new Date().toISOString(),
-    },
-  };
+function persist(res: AuthResponse) {
+  localStorage.setItem(TOKEN_KEY, res.token);
+  localStorage.setItem(USER_KEY, JSON.stringify(res.user));
 }
 
 export const authService = {
-  // Login do usuário
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = buildDemoResponse(data.email);
-    const { token, user } = response;
-    
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-    
-    // Adicionar token ao header das requisições futuras
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    
-    return response;
+    const { data: res } = await api.post<AuthResponse>("/api/auth/login", data);
+    persist(res);
+    return res;
   },
 
-  // Cadastro de novo usuário
   async signup(data: SignupRequest): Promise<AuthResponse> {
-    const response = buildDemoResponse(data.email, data.name);
-    const { token, user } = response;
-    
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
-    
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    
-    return response;
+    const { data: res } = await api.post<AuthResponse>("/api/auth/signup", {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+    });
+    persist(res);
+    return res;
   },
 
-  // Logout
+  async loginWithGoogle(idToken: string): Promise<AuthResponse> {
+    const { data: res } = await api.post<AuthResponse>("/api/auth/google", { idToken });
+    persist(res);
+    return res;
+  },
+
+  async me(): Promise<User> {
+    const { data } = await api.get<{ user: User }>("/api/auth/me");
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    return data.user;
+  },
+
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-    delete api.defaults.headers.common["Authorization"];
   },
 
-  // Obter token armazenado
   getToken(): string | null {
+    if (typeof window === "undefined") return null;
     return localStorage.getItem(TOKEN_KEY);
   },
 
-  // Obter usuário armazenado
   getUser(): User | null {
-    const user = localStorage.getItem(USER_KEY);
-    return user ? JSON.parse(user) : null;
-  },
-
-  // Verificar se está autenticado
-  isAuthenticated(): boolean {
-    return !!this.getToken();
-  },
-
-  // Inicializar token ao carregar a aplicação
-  initializeToken(): void {
-    const token = this.getToken();
-    if (token) {
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    }
+    if (typeof window === "undefined") return null;
+    const u = localStorage.getItem(USER_KEY);
+    return u ? (JSON.parse(u) as User) : null;
   },
 };
