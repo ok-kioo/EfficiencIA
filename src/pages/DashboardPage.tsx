@@ -1,14 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, BarChart3, GitBranch, Plus, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, BarChart3, GitBranch, Plus, Sparkles, Loader } from "lucide-react";
+import { projectService } from "../services/projectService";
 
 export function DashboardPage() {
-  // TODO Fase 2: substituir por `useQuery` que chama GET /api/projects
-  const projects: Array<{
-    id: string;
-    name: string;
-    updatedAt: string;
-    hasAnalysis: boolean;
-  }> = [];
+  const { data: projects = [], isLoading, error } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => projectService.list(),
+  });
 
   return (
     <div>
@@ -39,7 +38,15 @@ export function DashboardPage() {
         </h2>
       </div>
 
-      {projects.length === 0 ? (
+      {isLoading ? (
+        <div className="flex items-center justify-center rounded-xl border border-dashed border-border bg-card/50 px-6 py-10 text-sm text-muted-foreground">
+          <Loader size={14} className="mr-2 animate-spin" /> Carregando…
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-6 py-6 text-sm text-destructive">
+          Não foi possível carregar seus projetos. Verifique se o backend está rodando.
+        </div>
+      ) : projects.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card/50 px-6 py-10 text-center">
           <div className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
             <GitBranch size={18} strokeWidth={1.75} />
@@ -69,23 +76,25 @@ export function DashboardPage() {
                 {p.name}
               </h3>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Atualizado em {new Date(p.updatedAt).toLocaleDateString()}
+                Atualizado em {new Date(p.updated_at).toLocaleDateString()}
               </p>
               <div className="mt-4 flex items-center gap-2">
                 <Link
                   to="/modeler"
+                  search={{ projectId: p.id }}
                   className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:bg-primary-deep"
                 >
                   Abrir
                   <ArrowRight size={11} strokeWidth={2} />
                 </Link>
-                <button
-                  type="button"
+                <Link
+                  to="/projects/$id/analyses"
+                  params={{ id: p.id }}
                   className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-muted"
                 >
                   <BarChart3 size={11} strokeWidth={2} />
                   Análises
-                </button>
+                </Link>
               </div>
             </div>
           ))}
