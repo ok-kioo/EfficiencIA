@@ -13,6 +13,9 @@ export const pool = new Pool({
     process.env.NODE_ENV === "production"
       ? { rejectUnauthorized: false }
       : undefined,
+  // Força IPv4 quando o DNS devolve A + AAAA (host direto do Supabase é IPv6-only;
+  // em redes sem rota IPv6 dá ENETUNREACH). Use o pooler do Supavisor + PG_FORCE_IPV4=true.
+  ...(process.env.PG_FORCE_IPV4 === "true" ? { family: 4 as const } : {}),
 });
 
 export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
