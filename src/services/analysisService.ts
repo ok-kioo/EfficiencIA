@@ -19,6 +19,10 @@ export interface Analysis {
   finished_at: string | null;
 }
 
+export interface RecentAnalysis extends Analysis {
+  project_name: string;
+}
+
 export const analysisService = {
   async createForProject(projectId: string): Promise<Analysis> {
     const { data } = await api.post<Analysis>(`/api/projects/${projectId}/analyses`);
@@ -30,6 +34,12 @@ export const analysisService = {
   },
   async get(id: string): Promise<Analysis> {
     const { data } = await api.get<Analysis>(`/api/analyses/${id}`);
+    return data;
+  },
+  async listRecent(limit = 5): Promise<RecentAnalysis[]> {
+    const { data } = await api.get<RecentAnalysis[]>(`/api/analyses/recent`, {
+      params: { limit },
+    });
     return data;
   },
 };

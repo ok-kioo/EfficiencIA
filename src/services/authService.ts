@@ -38,6 +38,22 @@ export const authService = {
     return data.user;
   },
 
+  async requestPasswordReset(email: string): Promise<{ message: string; resetUrl?: string }> {
+    const { data } = await api.post<{ message: string; resetUrl?: string }>(
+      "/api/auth/forgot-password",
+      { email },
+    );
+    return data;
+  },
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>("/api/auth/reset-password", {
+      token,
+      password,
+    });
+    return data;
+  },
+
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
