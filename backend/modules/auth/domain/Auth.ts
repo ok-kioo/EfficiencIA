@@ -15,6 +15,15 @@ export const emailLoginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(20),
+  password: z.string().min(6),
+});
+
 export interface UserRecord {
   id: string;
   email: string;

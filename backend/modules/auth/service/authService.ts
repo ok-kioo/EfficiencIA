@@ -1,9 +1,17 @@
+import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { query } from "../../../infra/db.js";
 import { signToken } from "../../../infra/jwt.js";
 import { verifyGoogleIdToken } from "../../../infra/google.js";
 import { HttpError } from "../../../infra/errors.js";
 import type { AuthResponse, UserRecord } from "../domain/Auth.js";
+
+const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:5173";
+const RESET_TTL_MIN = 60;
+
+function sha256(input: string) {
+  return crypto.createHash("sha256").update(input).digest("hex");
+}
 
 function toResponse(user: UserRecord): AuthResponse {
   const token = signToken({ sub: user.id, email: user.email });
