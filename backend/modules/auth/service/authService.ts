@@ -89,3 +89,58 @@ export async function getCurrentUser(userId: string) {
   if (!rows[0]) throw new HttpError(404, "Usuário não encontrado.");
   return rows[0];
 }
+
+export interface ForgotPasswordResult {
+  message: string;
+  /** Apenas em desenvolvimento — facilita testes sem provedor de e-mail. */
+  resetUrl?: string;
+}
+
+export async function requestPasswordReset(email: string): Promise<ForgotPasswordResult> {
+  const genericMessage =
+    "Se existir uma conta com esse e-mail, enviaremos instruções para redefinir a senha.";
+  const { rows } = await query<{ id: string }>(
+    "SELECT id FROM users WHERE email = $1",
+    [email],
+  );
+  const user = rows[0];
+  if (!user) return { message: genericMessage };
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const tokenHash = sha256(rawToken);
+  const expiresAt = new Date(Date.now() + RESET_TTL_MIN * 60_000);
+
+  await query(
+    `INSERT INTO password_resets (user_id, token_hash, expires_at)
+     VALUES ($1, $2, $3)`,
+    [user.id, tokenHash, expiresAt.toISOString()],
+  );
+
+  const resetUrl = `${FRONTEND_URL}/reset-password?token=${rawToken}`;
+  // Sem provedor de e-mail ainda; o link é logado para o operador.
+  console.log(`[password-reset] ${email} -> ${resetUrl}`);
+
+  const result: ForgotPasswordResult = { message: genericMessage };
+  if (process.env.NODE_ENV !== "production") {
+    result.resetUrl = resetUrl;
+  }
+  return result;
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  const tokenHash = sha256(token);
+  const { rows } = await query<{ id: string; user_id: string; used_at: string | null; expires_at: string }>(
+    `SELECT id, user_id, used_at, expires_at FROM password_resets WHERE token_hash = $1`,
+    [tokenHash],
+  );
+  const record = rows[0];
+  if (!record || record.used_at || new Date(record.expires_at).getTime() < Date.now()) {
+    throw new HttpError(400, "Token inválido ou expirado.", "invalid_token");
+  }
+  const password_hash = await bcrypt.hash(newPassword, 10);
+  await query("UPDATE users SET password_hash = $2, updated_at = NOW() WHERE id = $1", [
+    record.user_id,
+    password_hash,
+  ]);
+  await query("UPDATE password_resets SET used_at = NOW() WHERE id = $1", [record.id]);
+}
