@@ -11,7 +11,7 @@ import {
   Square,
   Users,
 } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import { useOptionalAuth } from "../contexts/AuthContext";
 
 export const Route = createFileRoute("/ajuda")({
   head: () => ({
