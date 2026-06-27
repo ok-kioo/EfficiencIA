@@ -182,7 +182,8 @@ const practices = [
 ];
 
 function HelpPage() {
-  const { isAuthenticated } = useAuth();
+  const auth = useOptionalAuth();
+  const isAuthenticated = !!auth?.isAuthenticated;
   const router = useRouter();
 
   function handleBack(event: React.MouseEvent<HTMLAnchorElement>) {
