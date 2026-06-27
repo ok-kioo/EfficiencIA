@@ -1,4 +1,6 @@
 import type { Violation } from "../../lib/bpmn-validation/types";
+import { Crown, Sparkles } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 interface DisplayViolation extends Violation {
   count?: number;
@@ -7,6 +9,8 @@ interface DisplayViolation extends Violation {
 interface ValidationPanelProps {
   violations: DisplayViolation[];
   onFocus: (elementId: string) => void;
+  /** Indica que algumas sugestões estão bloqueadas por serem do plano Premium. */
+  premiumLockedCount?: number;
 }
 
 const SEVERITY_LABEL: Record<Violation["severity"], string> = {
@@ -27,7 +31,11 @@ const DOT: Record<Violation["severity"], string> = {
   info: "bg-muted-foreground/50",
 };
 
-export function ValidationPanel({ violations, onFocus }: ValidationPanelProps) {
+export function ValidationPanel({
+  violations,
+  onFocus,
+  premiumLockedCount = 0,
+}: ValidationPanelProps) {
   const grouped: Record<Violation["severity"], DisplayViolation[]> = {
     error: [],
     warning: [],
@@ -36,16 +44,14 @@ export function ValidationPanel({ violations, onFocus }: ValidationPanelProps) {
   for (const v of violations) grouped[v.severity].push(v);
   const total = violations.length;
 
-  if (total === 0) {
-    return (
-      <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-3 text-xs text-primary-deep">
-        Tudo certo — o diagrama está consistente.
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
+      {total === 0 && premiumLockedCount === 0 && (
+        <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 px-3 py-3 text-xs text-primary-deep">
+          Tudo certo — o diagrama está consistente.
+        </div>
+      )}
+
       {(Object.keys(grouped) as Violation["severity"][]).map((severity) => {
         const items = grouped[severity];
         if (items.length === 0) return null;
@@ -87,6 +93,28 @@ export function ValidationPanel({ violations, onFocus }: ValidationPanelProps) {
           </div>
         );
       })}
+
+      {premiumLockedCount > 0 && (
+        <div className="rounded-lg border-2 border-dashed border-accent/40 bg-gradient-to-br from-primary/5 to-accent/10 p-4">
+          <div className="mb-1.5 flex items-center gap-2">
+            <Crown size={14} className="text-accent" />
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-accent">
+              Análises avançadas do Premium
+            </p>
+          </div>
+          <p className="text-[13px] leading-snug text-foreground">
+            Esta melhoria faz parte das análises avançadas do{" "}
+            <strong className="font-semibold">Plano Premium</strong>.
+          </p>
+          <Link
+            to="/premium"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-primary to-accent px-3 py-1.5 text-[11px] font-semibold text-primary-foreground transition hover:opacity-95"
+          >
+            <Sparkles size={11} />
+            Conhecer Plano Premium
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

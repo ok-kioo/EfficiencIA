@@ -1,0 +1,12 @@
+{
+  "name": "efficiencia-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Raiz do monorepo EfficiencIA. Os scripts delegam para frontend/. Backend é executado separadamente (cd backend && bun run dev).",
+  "scripts": {
+    "dev": "cd frontend && bun run dev",
+    "build": "cd frontend && bun run build",
+    "start": "cd frontend && bun run dev",
+    "postinstall": "cd frontend && bun install"
+  }
+}

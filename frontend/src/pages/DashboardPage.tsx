@@ -6,12 +6,14 @@ import {
   BookOpen,
   CheckCircle2,
   Clock,
+  Crown,
   GitBranch,
   Loader,
   Plus,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import { projectService } from "../services/projectService";
 import { analysisService, type RecentAnalysis } from "../services/analysisService";
 
@@ -30,6 +32,9 @@ function statusLabel(s: RecentAnalysis["status"]) {
 }
 
 export function DashboardPage() {
+  const { user } = useAuth();
+  const isFree = (user?.plan ?? "free") === "free";
+
   const {
     data: projects = [],
     isLoading: projectsLoading,
@@ -41,8 +46,13 @@ export function DashboardPage() {
 
   const { data: recent = [], isLoading: recentLoading } = useQuery({
     queryKey: ["analyses", "recent"],
-    queryFn: () => analysisService.listRecent(5),
+    queryFn: () => analysisService.listRecent(20),
   });
+
+  // Projetos que já tiveram pelo menos uma análise concluída.
+  const analyzedProjectIds = new Set(
+    recent.filter((a) => a.status === "done").map((a) => a.project_id),
+  );
 
   const totalProjects = projects.length;
   const totalAnalyses = recent.length; // visão das mais recentes
@@ -142,37 +152,55 @@ export function DashboardPage() {
             <EmptyProjects />
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
-              {projects.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex flex-col rounded-xl border border-border bg-card p-5 transition hover:border-primary/40"
-                >
-                  <h3 className="font-display text-sm font-semibold text-foreground">
-                    {p.name}
-                  </h3>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Atualizado em {formatDate(p.updated_at)}
-                  </p>
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <Link
-                      to="/modeler"
-                      search={{ projectId: p.id }}
-                      className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:bg-primary-deep"
-                    >
-                      Abrir
-                      <ArrowRight size={11} strokeWidth={2} />
-                    </Link>
-                    <Link
-                      to="/projects/$id/analyses"
-                      params={{ id: p.id }}
-                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-muted"
-                    >
-                      <BarChart3 size={11} strokeWidth={2} />
-                      Análises
-                    </Link>
+              {projects.map((p) => {
+                const analyzed = analyzedProjectIds.has(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    className="flex flex-col rounded-xl border border-border bg-card p-5 transition hover:border-primary/40"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-display text-sm font-semibold text-foreground">
+                        {p.name}
+                      </h3>
+                      {!analyzed && (
+                        <span
+                          title={
+                            isFree
+                              ? "Recomendado analisar — disponível no plano Premium"
+                              : "Recomendado analisar com a IA"
+                          }
+                          className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-accent"
+                        >
+                          {isFree ? <Crown size={9} /> : <Sparkles size={9} />}
+                          Recomendado analisar
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Atualizado em {formatDate(p.updated_at)}
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <Link
+                        to="/modeler"
+                        search={{ projectId: p.id }}
+                        className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground transition hover:bg-primary-deep"
+                      >
+                        Abrir
+                        <ArrowRight size={11} strokeWidth={2} />
+                      </Link>
+                      <Link
+                        to="/projects/$id/analyses"
+                        params={{ id: p.id }}
+                        className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-[11px] font-medium text-foreground transition hover:bg-muted"
+                      >
+                        <BarChart3 size={11} strokeWidth={2} />
+                        Análises
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -191,7 +219,7 @@ export function DashboardPage() {
               </div>
             ) : (
               <ul className="space-y-2">
-                {recent.map((a) => {
+                {recent.slice(0, 5).map((a) => {
                   const st = statusLabel(a.status);
                   return (
                     <li

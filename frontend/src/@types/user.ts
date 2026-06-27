@@ -1,8 +1,12 @@
+export type UserPlan = "free" | "premium";
+
 export interface User {
   id: string;
   name: string;
   email: string;
-  picture?: string;
+  picture?: string | null;
+  plan: UserPlan;
+  plan_updated_at?: string | null;
   createdAt?: string;
 }
 
