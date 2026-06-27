@@ -1,63 +1,60 @@
-## Correção do erro em `/ajuda` + Fase 2
+## Correções: RLS nas tabelas públicas + Onboarding abrindo projeto vazio
 
-### Problema
-A rota `/ajuda` é pública (fora de `_authenticated`), então não está envolvida pelo `AuthProvider`. O `useAuth()` lança erro ao montar a página, disparando o error boundary.
+### 1) RLS nas tabelas `public.*` (segurança)
 
-### Correção
-1. **`frontend/src/contexts/AuthContext.tsx`**: criar hook `useOptionalAuth()` que retorna `null` quando não há provider (em vez de lançar). Manter `useAuth()` estrito.
-2. **`frontend/src/routes/ajuda.tsx`**: trocar `useAuth()` por `useOptionalAuth()` e tratar `auth === null` como "não autenticado" (mostra CTAs públicos e link para `/`).
+Contexto: o banco é acessado **apenas pelo backend Express** usando uma conexão Postgres com a role dona das tabelas (Supavisor/pooler). Não existe PostgREST/Supabase Auth consumindo essas tabelas direto do cliente, então hoje nada as exporia — mas o scanner do Supabase exige RLS habilitado em qualquer tabela do schema `public`.
 
-Validação: abrir `/ajuda` deslogado e logado via Playwright; confirmar render e botão "Voltar" inteligente.
+**Solução:** habilitar RLS (com `FORCE ROW LEVEL SECURITY`) e **não criar policies permissivas**. O dono da tabela (a role do backend) continua acessando normalmente porque RLS não se aplica a quem é dono — exceto se usarmos `FORCE`, que força inclusive o dono a respeitar policies. Para manter o backend funcionando sem reescrever queries:
 
----
+- Habilitar `ROW LEVEL SECURITY` **sem `FORCE`** nas 4 tabelas → o owner (backend) continua passando, qualquer outra role (anon/authenticated do PostgREST) fica bloqueada por padrão.
+- Revogar explicitamente `ALL` de `anon`, `authenticated` e `PUBLIC` nessas tabelas, garantindo defesa em profundidade.
 
-### Fase 2 — Escopo
+Tabelas atingidas:
+- `public.projects`
+- `public.analyses`
+- `public.password_resets`
+- `public.schema_migrations` (tabela criada pelo runner de migrations)
 
-Conforme combinado (entrega em fases, RLS app-level no Express, Docker completo, preview já destravado), a Fase 2 cobre:
+**Implementação:**
 
-#### A. Clean Architecture no backend (refactor incremental)
-Padronizar todos os módulos em camadas explícitas, sem mudar contratos HTTP:
+- Nova migration `backend/migrations/007_enable_rls.sql`:
+  ```sql
+  ALTER TABLE public.users            ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.projects         ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.analyses         ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.password_resets  ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE public.schema_migrations ENABLE ROW LEVEL SECURITY;
+
+  REVOKE ALL ON public.users, public.projects, public.analyses,
+              public.password_resets, public.schema_migrations
+    FROM PUBLIC, anon, authenticated;
+  ```
+- Ajuste no runner `backend/src/infra/migrate.ts` para chamar `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` em `schema_migrations` logo após o `CREATE TABLE IF NOT EXISTS` (caso o banco já tenha sido inicializado antes de existir a migration 007).
+
+Nenhuma policy é criada — o backend acessa como owner do schema e continua passando; PostgREST (anon/authenticated) não tem permissão nem policy, então fica fechado.
+
+### 2) Onboarding abre o modeler vazio
+
+**Causa:** o botão "Abrir o exemplo" do `WelcomeOnboarding` faz `<Link to="/modeler">` sem `projectId`. O `ModelerPage` então entra no caminho "novo processo" e mostra o XML default (só Start). O projeto de boas-vindas existe no banco, mas o modeler nunca foi instruído a abri-lo.
+
+**Solução:** descobrir o id do projeto de exemplo e navegar para `/modeler?projectId=<id>`.
+
+- No `WelcomeOnboarding.tsx`: trocar o `<Link>` por um botão que:
+  1. Marca onboarding como concluído (`userService.completeOnboarding`).
+  2. Chama `projectService.list()` e escolhe o projeto mais antigo do usuário (o welcome é o primeiro criado no signup); fallback: o primeiro cujo nome contenha "Pedido de cliente".
+  3. Usa `useNavigate()` para ir a `/modeler` com `search: { projectId }`. Se a lista vier vazia (falha do seed), navega para `/modeler` sem projectId e mostra toast informativo.
+- Garantir que `projectService.list()` já retorna `id` (sim — usado no dashboard).
+
+### Arquivos a tocar
+
+- `backend/migrations/007_enable_rls.sql` (novo)
+- `backend/src/infra/migrate.ts` (RLS em `schema_migrations` ao criar)
+- `frontend/src/components/onboarding/WelcomeOnboarding.tsx` (botão final navega para o projeto de exemplo)
+
+### Como o usuário aplica
+
 ```
-backend/src/modules/<modulo>/
-  domain/         (entidades + tipos)
-  application/    (use-cases — regras de negócio puras)
-  infrastructure/ (repos Postgres, clientes externos)
-  interface/      (controllers + routes HTTP)
+cd backend && npm run migrate
 ```
-- Extrair `*Repository` de cada `*Service` (hoje os services falam SQL direto).
-- Mover regras (ex.: gate Premium, cálculo de score, dedupe) para use-cases puros e testáveis.
-- Manter rotas atuais funcionando — só trocar a fiação interna.
-- Aplicar em ordem: `auth` → `users` → `projects` → `analyses`.
 
-#### B. RLS app-level reforçado
-- Criar middleware `withTenantScope` que injeta `userId` em todo repo call.
-- Auditoria: garantir que toda query SELECT/UPDATE/DELETE filtra por `user_id` (ou via JOIN em `projects.user_id` no caso de `analyses`).
-- Testes de integração mínimos por módulo confirmando 404 quando o recurso pertence a outro usuário.
-
-#### C. Onboarding + projeto de exemplo
-- Backend: ao concluir signup, criar `Welcome Process` (XML BPMN pronto) vinculado ao usuário.
-- Frontend: modal de boas-vindas (3 passos: desenhar, dados operacionais, analisar com IA) na primeira entrada no dashboard, com flag `localStorage` + `users.onboarded_at`.
-- Migration `006_user_onboarding.sql` + endpoint `POST /api/users/me/onboarding/complete`.
-
-#### D. Docker Compose completo (raiz do repo)
-`docker-compose.yml` orquestrando:
-- `frontend` (Vite dev na 8080)
-- `backend` (Express na 3001)
-- `postgres` (15, volume nomeado, init com migrations)
-- `n8n` (5678, com volume)
-- `qdrant` (6333)
-- `ollama` (11434, volume de modelos)
-
-Mais:
-- `Dockerfile` por serviço (frontend e backend).
-- `.env.docker.example` com variáveis dos 6 serviços.
-- README curto em `docs/docker.md` com comandos `up`, `migrate`, `logs`.
-
-### Ordem de execução
-1. Hotfix `/ajuda` (bloqueante).
-2. Onboarding (alto impacto visível para o usuário).
-3. Refactor Clean Architecture + RLS reforçado (qualidade interna).
-4. Docker Compose (infra local).
-
-### Fora de escopo desta fase
-Assinaturas pagas reais (Stripe), envio real de e-mail de reset, edição colaborativa, integração com Ollama no fluxo de análise (n8n continua sendo a ponte). Esses entram na Fase 3.
+Depois o scan deve parar de reportar as 4 violações de RLS, e finalizar o onboarding já abre o modeler com o fluxo "Pedido de cliente" carregado.
