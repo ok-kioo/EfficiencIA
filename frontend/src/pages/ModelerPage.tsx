@@ -4,16 +4,19 @@ import { toast } from "sonner";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   CheckCircle2,
+  Crown,
   HelpCircle,
   ListChecks,
   MousePointerClick,
   Sliders,
+  Sparkles,
 } from "lucide-react";
 
 import { BpmnModeler, defaultBpmnXml } from "../components/bpmn/BpmnModeler";
 import { BpmnToolbar } from "../components/bpmn/BpmnToolBar";
 import { ProcessDataPanel } from "../components/process/ProcessDataPanel";
 import { ValidationPanel } from "../components/bpmn/ValidationPanel";
+import { AnalyzeBeforeActionDialog } from "../components/modeler/AnalyzeBeforeActionDialog";
 import {
   Accordion,
   AccordionContent,
@@ -26,12 +29,13 @@ import {
   mergeExtractedActivities,
 } from "../utils/bpmnUtils";
 import { downloadFile } from "../utils/downloadFile";
-import { loadDraft } from "../lib/modeler/autosave";
+import { clearDraft, loadDraft } from "../lib/modeler/autosave";
 import { useModelerAutosave } from "../hooks/useModelerAutosave";
 import { useBpmnValidation } from "../hooks/useBpmnValidation";
 import { projectService } from "../services/projectService";
 import { analysisService } from "../services/analysisService";
 import { extractApiError } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 type AnyObj = Record<string, unknown> & {
   id: string;
@@ -72,20 +76,25 @@ function friendlyTypeOf(type?: string) {
 
 export function ModelerPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isFree = (user?.plan ?? "free") === "free";
   const { projectId: initialProjectId } = useSearch({
     from: "/_authenticated/modeler",
   }) as { projectId?: string };
 
+  // Estado base — começa SEMPRE vazio quando há um projectId, para não vazar
+  // conteúdo de outro projeto via cache. Sem projeto, tentamos restaurar o
+  // rascunho "novo".
   const initial = useMemo(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || initialProjectId) {
       return {
         bpmnXml: defaultBpmnXml,
-        processName: "Novo processo",
+        processName: initialProjectId ? "" : "Novo processo",
         activities: [] as ProcessActivity[],
         restored: false,
       };
     }
-    const draft = loadDraft();
+    const draft = loadDraft(null);
     if (draft) {
       return {
         bpmnXml: draft.bpmnXml,
@@ -100,23 +109,28 @@ export function ModelerPage() {
       activities: [],
       restored: false,
     };
-  }, []);
+  }, [initialProjectId]);
 
   const [processName, setProcessName] = useState(initial.processName);
   const [bpmnXml, setBpmnXml] = useState(initial.bpmnXml);
   const [activities, setActivities] = useState<ProcessActivity[]>(initial.activities);
   const [modeler, setModeler] = useState<BpmnModelerLib | null>(null);
-  const [projectId, setProjectId] = useState<string | undefined>(initialProjectId);
+  const [projectId] = useState<string | undefined>(initialProjectId);
+  const [hasAnalyses, setHasAnalyses] = useState<boolean | null>(null);
+  const [loadingProject, setLoadingProject] = useState<boolean>(Boolean(initialProjectId));
   const [selected, setSelected] = useState<{
     id: string;
     name: string;
     type: string;
   } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const modelerRef = useRef<BpmnModelerLib | null>(null);
   const restoredToastRef = useRef(false);
 
   const { status, lastSavedAt, discard } = useModelerAutosave({
+    projectId: projectId ?? null,
     bpmnXml,
     processName,
     activities,
@@ -160,18 +174,64 @@ export function ModelerPage() {
     setActivities((current) => mergeExtractedActivities(current, extractedActivities));
   }, [bpmnXml]);
 
+  // Carrega o projeto. Para projetos existentes, SEMPRE busca do backend e
+  // tenta restaurar rascunho específico desse projeto (mais novo que o salvo
+  // no backend). Sem projectId: comportamento "novo processo".
   useEffect(() => {
-    if (!initialProjectId) return;
+    if (!initialProjectId) {
+      setLoadingProject(false);
+      return;
+    }
     let cancelled = false;
+    setLoadingProject(true);
     projectService
       .get(initialProjectId)
       .then((p) => {
         if (cancelled) return;
-        setProcessName(p.name);
-        if (p.bpmn_xml) setBpmnXml(p.bpmn_xml);
-        if (Array.isArray(p.activities)) setActivities(p.activities as ProcessActivity[]);
+        const serverActivities = Array.isArray(p.activities)
+          ? (p.activities as ProcessActivity[])
+          : [];
+        const serverXml = p.bpmn_xml ?? defaultBpmnXml;
+
+        // Rascunho mais recente que o updated_at do projeto vence.
+        const draft = loadDraft(initialProjectId);
+        const projectUpdatedAt = new Date(p.updated_at).getTime();
+        if (draft && draft.savedAt > projectUpdatedAt) {
+          setProcessName(draft.processName || p.name);
+          setBpmnXml(draft.bpmnXml);
+          setActivities(draft.activities ?? serverActivities);
+          if (!restoredToastRef.current) {
+            restoredToastRef.current = true;
+            toast.success("Rascunho deste projeto restaurado.");
+          }
+        } else {
+          setProcessName(p.name);
+          setBpmnXml(serverXml);
+          setActivities(serverActivities);
+          // Limpa rascunho velho desse projeto.
+          if (draft) clearDraft(initialProjectId);
+        }
       })
-      .catch(() => toast.error("Não foi possível carregar o projeto."));
+      .catch(() => {
+        if (cancelled) return;
+        toast.error("Não foi possível carregar o projeto.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingProject(false);
+      });
+
+    // Já que estamos abrindo este projeto, busca histórico de análises para
+    // saber se mostramos o banner "ainda não foi analisado".
+    analysisService
+      .listForProject(initialProjectId)
+      .then((list) => {
+        if (cancelled) return;
+        setHasAnalyses(list.some((a) => a.status === "done"));
+      })
+      .catch(() => {
+        if (!cancelled) setHasAnalyses(null);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -187,27 +247,51 @@ export function ModelerPage() {
     setBpmnXml(content);
   }
 
-  async function handleExport() {
+  function doExport() {
     const m = modelerRef.current;
     if (!m) return;
-    const result = await m.saveXML({ format: true });
-    if (!result.xml) return;
-    downloadFile(`${processName}.bpmn`, result.xml, "application/xml");
+    m.saveXML({ format: true }).then((result) => {
+      if (!result.xml) return;
+      downloadFile(`${processName || "processo"}.bpmn`, result.xml, "application/xml");
+    });
+  }
+
+  function handleExport() {
+    // Se ainda não analisou e o usuário é Premium, sugere análise antes.
+    if (!isFree && hasAnalyses === false) {
+      setExportDialogOpen(true);
+      return;
+    }
+    doExport();
   }
 
   function handleBpmnChange(xml: string) {
     setBpmnXml(xml);
   }
 
-  function handleDiscardDraft() {
+  function doDiscard() {
     discard();
     setBpmnXml(defaultBpmnXml);
-    setProcessName("Novo processo");
+    setProcessName(projectId ? processName : "Novo processo");
     setActivities([]);
     toast.success("Rascunho descartado. Você voltou ao diagrama padrão.");
   }
 
+  function handleDiscardDraft() {
+    if (!isFree && hasAnalyses === false) {
+      setDiscardDialogOpen(true);
+      return;
+    }
+    doDiscard();
+  }
+
   async function handleAnalyze() {
+    // Usuário FREE não pode analisar — leva para a página Premium.
+    if (isFree) {
+      navigate({ to: "/premium" });
+      return;
+    }
+
     setAnalyzing(true);
     try {
       let pid = projectId;
@@ -224,7 +308,6 @@ export function ModelerPage() {
           activities,
         });
         pid = created.id;
-        setProjectId(pid);
       }
 
       toast.info("Enviando para análise da IA…");
@@ -235,6 +318,8 @@ export function ModelerPage() {
       } else {
         toast.success("Análise concluída!");
       }
+      // Limpa o rascunho desse projeto — já está persistido no backend.
+      clearDraft(pid);
       navigate({ to: "/analyses/$id", params: { id: analysis.id } });
     } catch (err) {
       toast.error(extractApiError(err, "Não foi possível analisar o processo."));
@@ -251,6 +336,8 @@ export function ModelerPage() {
         : lastSavedAt
           ? `Salvo às ${new Date(lastSavedAt).toLocaleTimeString()}`
           : "Salva automaticamente";
+
+  const showAnalyzeBanner = !analyzing && projectId && hasAnalyses === false;
 
   return (
     <div>
@@ -279,6 +366,7 @@ export function ModelerPage() {
               />
               {autosaveLabel}
             </span>
+            {loadingProject && <span>Carregando projeto…</span>}
           </div>
         </div>
 
@@ -294,6 +382,33 @@ export function ModelerPage() {
         </div>
       </div>
 
+      {showAnalyzeBanner && (
+        <div className="mb-4 flex flex-col gap-2 rounded-xl border border-accent/30 bg-gradient-to-r from-primary/5 to-accent/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent/15 text-accent">
+              <Sparkles size={15} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                Seu processo ainda não foi analisado pela IA.
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Receba um diagnóstico com gargalos, problemas e sugestões priorizadas.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleAnalyze}
+            disabled={analyzing}
+            className="inline-flex items-center justify-center gap-1.5 rounded-md bg-gradient-to-r from-primary to-accent px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:opacity-95 disabled:opacity-60"
+          >
+            {isFree ? <Crown size={13} /> : <Sparkles size={13} />}
+            {isFree ? "Conhecer Premium" : "Analisar agora"}
+          </button>
+        </div>
+      )}
+
       <BpmnToolbar
         onImport={handleImport}
         onExport={handleExport}
@@ -301,6 +416,37 @@ export function ModelerPage() {
         onDiscard={handleDiscardDraft}
         canDiscard={Boolean(lastSavedAt)}
         analyzing={analyzing}
+        highlightAnalyze={hasAnalyses === false}
+      />
+
+      <AnalyzeBeforeActionDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        actionLabel="exportar o XML"
+        continueLabel="Exportar mesmo assim"
+        onContinueWithout={() => {
+          setExportDialogOpen(false);
+          doExport();
+        }}
+        onAnalyzeFirst={() => {
+          setExportDialogOpen(false);
+          handleAnalyze();
+        }}
+      />
+
+      <AnalyzeBeforeActionDialog
+        open={discardDialogOpen}
+        onOpenChange={setDiscardDialogOpen}
+        actionLabel="descartar este rascunho"
+        continueLabel="Descartar mesmo assim"
+        onContinueWithout={() => {
+          setDiscardDialogOpen(false);
+          doDiscard();
+        }}
+        onAnalyzeFirst={() => {
+          setDiscardDialogOpen(false);
+          handleAnalyze();
+        }}
       />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_400px]">
@@ -387,7 +533,11 @@ export function ModelerPage() {
                 </span>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <ValidationPanel violations={violations} onFocus={focusElement} />
+                <ValidationPanel
+                  violations={violations}
+                  onFocus={focusElement}
+                  premiumLockedCount={isFree ? 1 : 0}
+                />
               </AccordionContent>
             </AccordionItem>
 
@@ -410,7 +560,7 @@ export function ModelerPage() {
                     volume — esses dados deixam a análise da IA bem mais precisa.
                   </p>
                   <a
-                    href="/ajuda"
+                    href="/guia"
                     className="mt-3 inline-flex items-center gap-1 rounded-md bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary transition hover:bg-primary/15"
                   >
                     Ver guia completo →

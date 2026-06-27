@@ -16,6 +16,7 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AjudaRouteImport } from './routes/ajuda'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedPremiumRouteImport } from './routes/_authenticated.premium'
 import { Route as AuthenticatedModelerRouteImport } from './routes/_authenticated.modeler'
 import { Route as AuthenticatedGuiaRouteImport } from './routes/_authenticated.guia'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
@@ -56,6 +57,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPremiumRoute = AuthenticatedPremiumRouteImport.update({
+  id: '/premium',
+  path: '/premium',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedModelerRoute = AuthenticatedModelerRouteImport.update({
   id: '/modeler',
   path: '/modeler',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/guia': typeof AuthenticatedGuiaRoute
   '/modeler': typeof AuthenticatedModelerRoute
+  '/premium': typeof AuthenticatedPremiumRoute
   '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
   '/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
 }
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/guia': typeof AuthenticatedGuiaRoute
   '/modeler': typeof AuthenticatedModelerRoute
+  '/premium': typeof AuthenticatedPremiumRoute
   '/analyses/$id': typeof AuthenticatedAnalysesIdRoute
   '/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
 }
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/guia': typeof AuthenticatedGuiaRoute
   '/_authenticated/modeler': typeof AuthenticatedModelerRoute
+  '/_authenticated/premium': typeof AuthenticatedPremiumRoute
   '/_authenticated/analyses/$id': typeof AuthenticatedAnalysesIdRoute
   '/_authenticated/projects/$id/analyses': typeof AuthenticatedProjectsIdAnalysesRoute
 }
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/guia'
     | '/modeler'
+    | '/premium'
     | '/analyses/$id'
     | '/projects/$id/analyses'
   fileRoutesByTo: FileRoutesByTo
@@ -149,6 +159,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/guia'
     | '/modeler'
+    | '/premium'
     | '/analyses/$id'
     | '/projects/$id/analyses'
   id:
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/guia'
     | '/_authenticated/modeler'
+    | '/_authenticated/premium'
     | '/_authenticated/analyses/$id'
     | '/_authenticated/projects/$id/analyses'
   fileRoutesById: FileRoutesById
@@ -228,6 +240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/premium': {
+      id: '/_authenticated/premium'
+      path: '/premium'
+      fullPath: '/premium'
+      preLoaderRoute: typeof AuthenticatedPremiumRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/modeler': {
       id: '/_authenticated/modeler'
       path: '/modeler'
@@ -270,6 +289,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedGuiaRoute: typeof AuthenticatedGuiaRoute
   AuthenticatedModelerRoute: typeof AuthenticatedModelerRoute
+  AuthenticatedPremiumRoute: typeof AuthenticatedPremiumRoute
   AuthenticatedAnalysesIdRoute: typeof AuthenticatedAnalysesIdRoute
   AuthenticatedProjectsIdAnalysesRoute: typeof AuthenticatedProjectsIdAnalysesRoute
 }
@@ -278,6 +298,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedGuiaRoute: AuthenticatedGuiaRoute,
   AuthenticatedModelerRoute: AuthenticatedModelerRoute,
+  AuthenticatedPremiumRoute: AuthenticatedPremiumRoute,
   AuthenticatedAnalysesIdRoute: AuthenticatedAnalysesIdRoute,
   AuthenticatedProjectsIdAnalysesRoute: AuthenticatedProjectsIdAnalysesRoute,
 }
