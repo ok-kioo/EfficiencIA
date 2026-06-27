@@ -17,7 +17,14 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
       .status(400)
       .json({ error: "validation_error", message: "Dados inválidos.", details: err.flatten() });
   }
-  console.error("[unhandled]", err);
-  const message = err instanceof Error ? err.message : "Erro interno.";
-  return res.status(500).json({ error: "internal_error", message });
+  const requestId =
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2));
+  console.error("[unhandled]", requestId, err);
+  return res.status(500).json({
+    error: "internal_error",
+    message: "Erro interno no servidor.",
+    requestId,
+  });
 }

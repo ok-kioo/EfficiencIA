@@ -1,6 +1,11 @@
 import jwt from "jsonwebtoken";
 
-const SECRET = process.env.JWT_SECRET ?? "dev-only-secret-change-me";
+const SECRET = process.env.JWT_SECRET;
+if (!SECRET || SECRET.length < 16) {
+  throw new Error(
+    "JWT_SECRET env var is required (mínimo 16 caracteres). Gere com `openssl rand -hex 32`.",
+  );
+}
 const EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? "7d";
 
 export interface JwtPayload {
