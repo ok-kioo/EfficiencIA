@@ -14,6 +14,14 @@ async function ensureTable() {
       applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  // Garante RLS habilitado na tabela mesmo em bancos antigos que foram
+  // inicializados antes da migration 007.
+  await pool.query(
+    "ALTER TABLE public.schema_migrations ENABLE ROW LEVEL SECURITY",
+  );
+  await pool.query(
+    "REVOKE ALL ON public.schema_migrations FROM PUBLIC",
+  );
 }
 
 async function applied(): Promise<Set<string>> {

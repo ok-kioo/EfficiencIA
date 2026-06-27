@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, BookOpen, MousePointerClick, Sparkles, X } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { userService } from "../../services/userService";
+import { projectService } from "../../services/projectService";
 
 const STEPS = [
   {
@@ -26,8 +28,10 @@ const STORAGE_KEY = "efficiencia:onboarding:dismissed";
 
 export function WelcomeOnboarding() {
   const { user, setUser } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [opening, setOpening] = useState(false);
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
@@ -45,8 +49,6 @@ export function WelcomeOnboarding() {
   if (!open || !user) return null;
 
   async function dismiss() {
-    if (closing) return;
-    setClosing(true);
     try {
       const updated = await userService.completeOnboarding();
       setUser({ ...user!, ...updated });
@@ -59,7 +61,34 @@ export function WelcomeOnboarding() {
       }
     } finally {
       setOpen(false);
-      setClosing(false);
+    }
+  }
+
+  async function openExample() {
+    if (opening) return;
+    setOpening(true);
+    try {
+      await dismiss();
+      const projects = await projectService.list();
+      // Welcome project é o mais antigo (criado no signup). Fallback por nome.
+      const sorted = [...projects].sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+      const welcome =
+        sorted.find((p) => /pedido de cliente/i.test(p.name)) ?? sorted[0];
+      if (welcome) {
+        await navigate({ to: "/modeler", search: { projectId: welcome.id } });
+      } else {
+        toast.info(
+          "Não encontramos seu processo de exemplo. Crie um novo para começar.",
+        );
+        await navigate({ to: "/modeler" });
+      }
+    } catch {
+      toast.error("Não foi possível abrir o exemplo. Tente pelo dashboard.");
+    } finally {
+      setOpening(false);
     }
   }
 
@@ -115,14 +144,14 @@ export function WelcomeOnboarding() {
               </button>
             )}
             {isLast ? (
-              <Link
-                to="/modeler"
-                onClick={dismiss}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary-deep"
+              <button
+                onClick={openExample}
+                disabled={opening}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary-deep disabled:opacity-60"
               >
-                Abrir o exemplo
+                {opening ? "Abrindo…" : "Abrir o exemplo"}
                 <ArrowRight size={12} strokeWidth={2} />
-              </Link>
+              </button>
             ) : (
               <button
                 onClick={() => setStep((s) => s + 1)}
