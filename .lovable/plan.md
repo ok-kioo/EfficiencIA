@@ -1,77 +1,119 @@
-## Objetivo
 
-Resolver inconsistências da página de ajuda dentro da plataforma, enriquecer o Dashboard e adicionar o fluxo de "esqueci minha senha".
+# Evolução da Plataforma — Fase 1 (correções críticas + planos + UX da IA)
 
----
+Entrega faseada conforme acordado. Esta é a Fase 1. Fase 2 (Clean Architecture + Docker completo com n8n/qdrant/ollama) e Fase 3 (onboarding + projeto de exemplo + páginas Premium completas) ficam para iterações seguintes para reduzir risco de regressão.
 
-## 1. Página de Ajuda dentro da plataforma (`/app/ajuda`)
+## 0. Diagnóstico do preview quebrado (resolver primeiro)
 
-A `/ajuda` atual é da landing page (header com "Voltar" para `/` e "Criar conta"). Vou criar uma página separada para usuários logados.
+O projeto foi reorganizado em `frontend/` e `backend/`, mas o sandbox do Lovable procura o `package.json` na raiz e roda `dev` a partir dali. Resultado: `Error: no command found for task "dev"` → preview nunca builda → WebSocket falha.
 
-- **Nova rota protegida**: `src/routes/_authenticated.ajuda.tsx` → renderiza `AppLayout` (com Sidebar/Header normais).
-- **Sidebar**: trocar `path: "/ajuda"` por `/app/ajuda` (rota autenticada). Detalhe: como `_authenticated` é pathless, a URL final será `/ajuda` mesmo. Para evitar colisão com a rota pública existente, renomeio a pública para `/sobre-ajuda` **ou** removo a pública e deixo só a interna. **Decisão**: manter a pública em `/ajuda` (landing usa) e criar a interna em `/guia` (rota `_authenticated.guia.tsx`). Sidebar aponta para `/guia`.
-- **Conteúdo da nova página interna** (mais completa que a landing):
-  - Introdução curta + link "Criar novo processo".
-  - Seção **Como preencher os dados operacionais** de cada elemento (tempo médio, custo, responsável, SLA, recursos) — explicando o que cada campo significa e como impacta a análise da IA.
-  - Catálogo completo de elementos, incluindo as variações específicas que a landing não cobre:
-    - **Tarefas**: User Task, Service Task, Manual Task, Script Task, Send/Receive Task.
-    - **Gateways**: Exclusive (XOR), Parallel (AND), Inclusive (OR), Event-based — com exemplos de cada.
-    - **Eventos**: Start/Intermediate/End nas variações Message, Timer, Error, Signal.
-    - **Subprocessos e Call Activities**.
-    - **Pools e Lanes** com mensagens entre pools.
-  - Boas práticas avançadas + FAQ focado em uso da plataforma logada (autosave, análise IA, histórico de análises, exportação).
-  - Sem botão "Criar conta"; CTAs apontam para `/modeler` e `/dashboard`.
+Correção: criar `lovable.toml` na raiz apontando para `frontend/`:
 
-## 2. Dashboard mais rico (`src/pages/DashboardPage.tsx`)
+```toml
+[run]
+install = "cd frontend && bun install"
+dev = "cd frontend && bun run dev"
+build = "cd frontend && bun run build"
+```
 
-Adicionar, mantendo o estilo atual:
+Sem mover arquivos. Backend continua isolado em `backend/` (não roda no sandbox do preview de qualquer forma).
 
-- **Cards de estatísticas** no topo (4 cards): total de processos, total de análises, análises concluídas, última análise.
-- **Bloco "Atalhos rápidos"**: Criar processo, Abrir modelagem em branco, Ler guia (`/guia`).
-- **Lista "Análises recentes"** (até 5): nome do projeto, score, status, data — buscando via `analysisService` (novo método `listRecent` ou agregando do backend).
-  - Backend: adicionar rota `GET /api/analyses/recent?limit=5` reutilizando service.
-- **Estado dos processos**: mostrar último score por projeto nos cards de processo existentes.
-- Manter responsividade e tema atuais (cards, bordas, tipografia display).
+## 1. Correções de comportamento
 
-## 3. Esqueci minha senha
+### 1.1 Limpeza do editor BPMN ao trocar de projeto
+Hoje `ModelerPage` chama `loadDraft()` do `localStorage` no `useMemo` inicial, e o draft é único global (`efficiencia:modeler:draft`). Ao abrir outro projeto, o draft do anterior volta antes do fetch do projeto atual sobrescrever — e se o novo projeto não tem XML, o draft permanece.
+
+Mudanças em `frontend/src/lib/modeler/autosave.ts` e `frontend/src/pages/ModelerPage.tsx`:
+- Trocar a chave do draft para incluir o projectId: `efficiencia:modeler:draft:<projectId>` e uma chave separada `…:new` para rascunho sem projeto.
+- Ao montar `ModelerPage` com `?projectId=X`, ignorar qualquer draft que não seja dessa chave; carregar SEMPRE o projeto do backend antes de exibir o XML; se o projeto não tem `bpmn_xml`, usar `defaultBpmnXml` vazio (não draft).
+- Ao desmontar ou ao navegar para fora do modeler, chamar `clearDraft(currentKey)` quando o conteúdo já foi persistido (após `Analisar com IA` ou após salvar).
+- Adicionar um guarda em `Dashboard → Abrir projeto`: navegar com `replace: true` e key da rota para forçar remount do `ModelerPage`.
+
+### 1.2 Isolamento por usuário (reforço no app, sem RLS — conforme escolhido)
+Auditar e garantir `WHERE user_id = $1` em todas as queries:
+- `projectService` (ok) — manter.
+- `analysisService.listRecent` / `findOne` / `listForProject` — já fazem join com ownership, revisar.
+- Adicionar testes manuais documentados em `backend/README.md`: tentar `GET /api/projects/:id` com token de outro usuário deve retornar 404.
+- `clearDraft` no logout: `AuthContext.logout()` limpa todas as chaves `efficiencia:modeler:draft:*` do localStorage para não vazar rascunho entre contas no mesmo navegador.
+
+### 1.3 Navegação da página de ajuda
+Hoje `/ajuda` é pública e o botão "Voltar" usa `<Link to="/">`, sempre indo para a landing. O usuário logado também vê "Criar conta".
+
+Mudanças em `frontend/src/routes/ajuda.tsx`:
+- Detectar auth via `useAuth()`. Se autenticado:
+  - Botão "Voltar" usa `router.history.back()` com fallback para `/dashboard`.
+  - Esconder botão "Criar conta"; mostrar "Ir para o Dashboard".
+  - Esconder CTA final "Criar sua conta".
+- Se não autenticado: comportamento atual (volta para `/`, mostra "Criar conta").
+- A rota interna `/_authenticated/guia` continua existindo (mais completa) — o Sidebar continua apontando para ela. A `/ajuda` pública fica como vitrine para visitantes.
+
+## 2. Modelo de assinatura FREE / PREMIUM (simulação, sem pagamento)
 
 ### Backend
-- Migração `004_password_resets.sql`:
-  ```sql
-  CREATE TABLE public.password_resets (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token_hash text NOT NULL UNIQUE,
-    expires_at timestamptz NOT NULL,
-    used_at timestamptz,
-    created_at timestamptz NOT NULL DEFAULT now()
-  );
-  ```
-- `authService` ganha:
-  - `requestPasswordReset(email)`: gera token aleatório (32 bytes hex), salva hash SHA-256, expira em 1h. Retorna sempre 200 (não revela se e-mail existe). Loga o link no console do backend (substituto de e-mail enquanto não há provedor configurado) e/ou retorna o link em dev se `NODE_ENV !== "production"`.
-  - `resetPassword(token, newPassword)`: valida hash, expiração e `used_at`, atualiza `password_hash`, marca como usado.
-- Rotas:
-  - `POST /api/auth/forgot-password` `{ email }`
-  - `POST /api/auth/reset-password` `{ token, password }`
+Migration `005_user_plans.sql`:
+```sql
+CREATE TYPE user_plan AS ENUM ('free', 'premium');
+ALTER TABLE users ADD COLUMN plan user_plan NOT NULL DEFAULT 'free';
+ALTER TABLE users ADD COLUMN plan_updated_at TIMESTAMPTZ;
+```
+- `userService.findById` retorna `plan`.
+- Novo endpoint `POST /api/users/me/upgrade` → seta `plan='premium'` para o usuário autenticado (sem pagamento, só simulação). Endpoint `POST /api/users/me/downgrade` (opcional, útil para testes).
+- Middleware `requirePremium` em `backend/src/infra/planMiddleware.ts` retorna `403 { error: 'plan_required', requiredPlan: 'premium' }`.
+- `POST /api/analyses` (criar análise) passa por `requirePremium`. FREE recebe 403.
+- `analysisService` ao retornar `bottlenecks`/`improvement_suggestions` para FREE: filtra itens marcados como `severity: 'premium'` ou `tier: 'premium'` no JSON e substitui por um único item placeholder `{ type: 'premium_locked', message: '…' }`. **O conteúdo Premium nunca é serializado para o cliente FREE.** (Hoje a análise só roda para Premium, então esse filtro vale para listagens históricas: se o usuário rebaixou ou se executou antes — manter consistência.)
 
 ### Frontend
-- `authService.ts`: adicionar `requestPasswordReset(email)` e `resetPassword(token, password)`.
-- **Link "Esqueci minha senha"** abaixo do botão Entrar em `LoginForm.tsx`, apontando para `/forgot-password`.
-- Nova rota pública `src/routes/forgot-password.tsx`: form com e-mail, mensagem de sucesso genérica.
-- Nova rota pública `src/routes/reset-password.tsx`: lê `?token=...` da URL, form com nova senha + confirmação, chama API, redireciona para `/login` com toast.
-- Em dev, o backend devolve `resetUrl` no JSON para facilitar teste; em prod, só mensagem.
+- `AuthContext` expõe `user.plan`.
+- `services/userService.ts` novo, com `upgradeToPremium()`.
+- `ModelerPage`: botão "Analisar com IA" para FREE não dispara request — navega para `/premium`.
+- `ValidationPanel` / "Pontos a revisar": renderiza card especial para itens `type: 'premium_locked'` com botão "Conhecer Plano Premium" → `/premium`.
+- Nova rota pública-mas-com-redirect `/_authenticated/premium` (`PremiumPage`): hero, comparação FREE × PREMIUM, exemplos de análise da IA, CTA "Ser PREMIUM" que chama `upgradeToPremium()` e redireciona para `/dashboard` com toast. Visual no padrão da landing.
 
----
+## 3. UX — Tornar a IA mais atrativa
 
-## Detalhes técnicos
+Mudanças incrementais, sem ser invasivo:
 
-- **Roteamento**: criar a nova ajuda como `/guia` evita colisão com a `/ajuda` pública e mantém SEO da landing.
-- **Stack de e-mail**: não vou plugar provedor de e-mail agora; o backend só loga o link. Documentar no README que substituir por SMTP/Resend é trabalho futuro.
-- **Segurança**: tokens armazenados como hash, expiração curta, uso único, resposta neutra em forgot-password.
-- **Sem mudanças** em: BPMN modeler, análise IA, fluxo de Google login, schema de users/projects/analyses.
+- `BpmnToolbar`: destacar o botão "Analisar com IA" — cor primária mais vibrante, ícone `Sparkles`, microcopy abaixo: "Receba recomendações inteligentes que vão além das validações tradicionais."
+- `ModelerPage`: se o projeto atual nunca foi analisado, mostrar banner discreto no topo do painel lateral: "Seu processo ainda não foi analisado pela IA." com CTA.
+- Modal de confirmação antes de **Exportar XML** e antes de **Descartar rascunho** perguntando "Deseja realizar uma análise inteligente antes?". Opções: "Analisar agora" / "Continuar sem analisar".
+- `DashboardPage`: cards de projetos sem análise recebem selo "Recomendado analisar".
+- Para FREE: todos os CTAs de IA levam a `/premium`; para PREMIUM, disparam fluxo normal.
 
-## Fora de escopo
+## 4. Sem mudanças nesta fase
 
-- Envio real de e-mail (SMTP/Resend).
-- Alterações na landing page `/ajuda` (continua como está).
-- i18n.
+- Clean Architecture / camada de Repository (Fase 2).
+- docker-compose com n8n/qdrant/ollama (Fase 2).
+- RLS real no Postgres (decidido: manter app-level).
+- Projeto de exemplo automático no signup (Fase 3).
+- Onboarding em modais (Fase 3).
+- Migração para Supabase Auth.
+
+## Detalhes técnicos (referência)
+
+Arquivos novos:
+- `lovable.toml` (raiz)
+- `backend/migrations/005_user_plans.sql`
+- `backend/src/infra/planMiddleware.ts`
+- `frontend/src/services/userService.ts`
+- `frontend/src/routes/_authenticated.premium.tsx` + `PremiumPage.tsx`
+- `frontend/src/components/modeler/AnalyzeBeforeActionDialog.tsx`
+
+Arquivos editados:
+- `lib/modeler/autosave.ts` — chave por projeto
+- `pages/ModelerPage.tsx` — load por projectId, banner, modais, gate FREE
+- `pages/DashboardPage.tsx` — selo "Recomendado analisar"
+- `components/bpmn/BpmnToolBar.tsx` — destaque visual + microcopy
+- `components/bpmn/ValidationPanel.tsx` — card `premium_locked`
+- `routes/ajuda.tsx` — voltar inteligente + esconder CTAs para logado
+- `contexts/AuthContext.tsx` — incluir `plan` e limpar drafts no logout
+- `@types/user.ts` — campo `plan`
+- `backend/src/modules/users/domain/User.ts` + `service` + `controller` + `routes` — endpoints upgrade/downgrade e expor `plan`
+- `backend/src/modules/analyses/routes/index.ts` — aplicar `requirePremium` no `POST`
+- `backend/src/modules/analyses/service/analysisService.ts` — filtrar itens premium para FREE
+- `backend/src/modules/auth/service/authService.ts` — incluir `plan` no payload `/me`
+
+Checagens ao final:
+- `cd frontend && bun run build` deve passar.
+- Preview do Lovable abre sem erro de WebSocket.
+- Login → abrir projeto A → voltar ao dashboard → abrir projeto B → editor mostra XML de B, nunca de A.
+- Usuário FREE clicando em "Analisar com IA" vai para `/premium`; após "Ser PREMIUM", botão funciona normalmente.
