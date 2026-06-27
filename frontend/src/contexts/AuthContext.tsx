@@ -104,3 +104,11 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   return ctx;
 }
+
+/**
+ * Versão segura para rotas públicas que podem ser acessadas
+ * sem o AuthProvider montado acima. Retorna null nesse caso.
+ */
+export function useOptionalAuth() {
+  return useContext(AuthContext) ?? null;
+}

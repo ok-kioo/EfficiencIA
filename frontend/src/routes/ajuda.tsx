@@ -11,7 +11,7 @@ import {
   Square,
   Users,
 } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import { useOptionalAuth } from "../contexts/AuthContext";
 
 export const Route = createFileRoute("/ajuda")({
   head: () => ({
@@ -182,7 +182,8 @@ const practices = [
 ];
 
 function HelpPage() {
-  const { isAuthenticated } = useAuth();
+  const auth = useOptionalAuth();
+  const isAuthenticated = !!auth?.isAuthenticated;
   const router = useRouter();
 
   function handleBack(event: React.MouseEvent<HTMLAnchorElement>) {

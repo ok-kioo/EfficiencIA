@@ -1,0 +1,106 @@
+version: "3.9"
+
+# Stack completa para rodar a EfficiencIA local: frontend, backend, banco,
+# n8n (orquestrador de IA), Qdrant (vetores) e Ollama (LLM local).
+#
+# Uso rápido:
+#   cp .env.docker.example .env
+#   docker compose up -d
+#   docker compose logs -f backend
+#
+# As migrations rodam automaticamente quando o backend sobe.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-efficiencia}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-efficiencia}
+      POSTGRES_DB: ${POSTGRES_DB:-efficiencia}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-efficiencia}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 3001
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-efficiencia}:${POSTGRES_PASSWORD:-efficiencia}@postgres:5432/${POSTGRES_DB:-efficiencia}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-trocar-em-producao}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://n8n:5678/webhook/assist-bpmn}
+      N8N_TIMEOUT_MS: ${N8N_TIMEOUT_MS:-60000}
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+      - backend-node-modules:/app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
+      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: ${TZ:-America/Sao_Paulo}
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n-data:/home/node/.n8n
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
+volumes:
+  postgres-data:
+  backend-node-modules:
+  frontend-node-modules:
+  n8n-data:
+  qdrant-data:
+  ollama-data:

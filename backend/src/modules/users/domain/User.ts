@@ -7,4 +7,5 @@ export interface User {
   picture: string | null;
   plan: UserPlan;
   plan_updated_at: string | null;
+  onboarded_at: string | null;
 }

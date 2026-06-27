@@ -33,6 +33,7 @@ export interface UserRecord {
   picture: string | null;
   google_sub: string | null;
   plan?: UserPlan;
+  onboarded_at?: string | null;
 }
 
 export interface AuthResponse {
@@ -43,5 +44,6 @@ export interface AuthResponse {
     name: string;
     picture: string | null;
     plan: UserPlan;
+    onboarded_at: string | null;
   };
 }
