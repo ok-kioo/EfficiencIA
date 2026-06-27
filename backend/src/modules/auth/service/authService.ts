@@ -130,12 +130,15 @@ export async function requestPasswordReset(email: string): Promise<ForgotPasswor
     [user.id, tokenHash, expiresAt.toISOString()],
   );
 
-  const resetUrl = `${FRONTEND_URL}/reset-password?token=${rawToken}`;
-  console.log(`[password-reset] ${email} -> ${resetUrl}`);
+  console.log("[password-reset] requested", {
+    userId: user.id,
+    at: new Date().toISOString(),
+  });
 
   const result: ForgotPasswordResult = { message: genericMessage };
   if (process.env.NODE_ENV !== "production") {
-    result.resetUrl = resetUrl;
+    // Apenas em desenvolvimento devolvemos o link para facilitar testes locais.
+    result.resetUrl = `${FRONTEND_URL}/reset-password?token=${rawToken}`;
   }
   return result;
 }
