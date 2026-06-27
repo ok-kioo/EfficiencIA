@@ -6,12 +6,14 @@ import {
   BookOpen,
   CheckCircle2,
   Clock,
+  Crown,
   GitBranch,
   Loader,
   Plus,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import { projectService } from "../services/projectService";
 import { analysisService, type RecentAnalysis } from "../services/analysisService";
 
@@ -30,6 +32,9 @@ function statusLabel(s: RecentAnalysis["status"]) {
 }
 
 export function DashboardPage() {
+  const { user } = useAuth();
+  const isFree = (user?.plan ?? "free") === "free";
+
   const {
     data: projects = [],
     isLoading: projectsLoading,
@@ -41,8 +46,13 @@ export function DashboardPage() {
 
   const { data: recent = [], isLoading: recentLoading } = useQuery({
     queryKey: ["analyses", "recent"],
-    queryFn: () => analysisService.listRecent(5),
+    queryFn: () => analysisService.listRecent(20),
   });
+
+  // Projetos que já tiveram pelo menos uma análise concluída.
+  const analyzedProjectIds = new Set(
+    recent.filter((a) => a.status === "done").map((a) => a.project_id),
+  );
 
   const totalProjects = projects.length;
   const totalAnalyses = recent.length; // visão das mais recentes
