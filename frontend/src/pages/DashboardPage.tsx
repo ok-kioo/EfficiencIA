@@ -16,6 +16,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { projectService } from "../services/projectService";
 import { analysisService, type RecentAnalysis } from "../services/analysisService";
+import { WelcomeOnboarding } from "../components/onboarding/WelcomeOnboarding";
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("pt-BR", {
@@ -66,6 +67,7 @@ export function DashboardPage() {
 
   return (
     <div>
+      <WelcomeOnboarding />
       {/* Hero */}
       <section className="relative mb-6 overflow-hidden rounded-xl border border-border bg-card px-6 py-7">
         <span className="absolute right-6 top-6 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-accent">
