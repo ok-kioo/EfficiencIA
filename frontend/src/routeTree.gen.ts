@@ -8,19 +8,19 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
-import { Route as AjudaRouteImport } from './routes/ajuda'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as rootRouteImport } from './routes/__root.tsx'
+import { Route as SignupRouteImport } from './routes/signup.tsx'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password.tsx'
+import { Route as LoginRouteImport } from './routes/login.tsx'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password.tsx'
+import { Route as AjudaRouteImport } from './routes/ajuda.tsx'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated.tsx'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedModelerRouteImport } from './routes/_authenticated.modeler'
-import { Route as AuthenticatedGuiaRouteImport } from './routes/_authenticated.guia'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
-import { Route as AuthenticatedAnalysesIdRouteImport } from './routes/_authenticated.analyses.$id'
-import { Route as AuthenticatedProjectsIdAnalysesRouteImport } from './routes/_authenticated.projects.$id.analyses'
+import { Route as AuthenticatedModelerRouteImport } from './routes/_authenticated.modeler.tsx'
+import { Route as AuthenticatedGuiaRouteImport } from './routes/_authenticated.guia.tsx'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard.tsx'
+import { Route as AuthenticatedAnalysesIdRouteImport } from './routes/_authenticated.analyses.$id.tsx'
+import { Route as AuthenticatedProjectsIdAnalysesRouteImport } from './routes/_authenticated.projects.$id.analyses.tsx'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
