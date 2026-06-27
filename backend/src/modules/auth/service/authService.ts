@@ -4,10 +4,13 @@ import { query } from "../../../infra/db.js";
 import { signToken } from "../../../infra/jwt.js";
 import { verifyGoogleIdToken } from "../../../infra/google.js";
 import { HttpError } from "../../../infra/errors.js";
+import { createWelcomeProject } from "../../projects/service/welcomeProject.js";
 import type { AuthResponse, UserRecord } from "../domain/Auth.js";
 
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:5173";
 const RESET_TTL_MIN = 60;
+const USER_COLS =
+  "id, email, name, picture, google_sub, plan, onboarded_at";
 
 function sha256(input: string) {
   return crypto.createHash("sha256").update(input).digest("hex");
@@ -23,12 +26,19 @@ function toResponse(user: UserRecord): AuthResponse {
       name: user.name,
       picture: user.picture,
       plan: (user.plan ?? "free") as "free" | "premium",
+      onboarded_at: user.onboarded_at ?? null,
     },
   };
 }
 
 export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
   const profile = await verifyGoogleIdToken(idToken);
+  // Detecta novo cadastro para semear o projeto de exemplo.
+  const existing = await query<{ id: string }>(
+    "SELECT id FROM users WHERE email = $1",
+    [profile.email],
+  );
+  const isNew = !existing.rowCount;
   const { rows } = await query<UserRecord>(
     `
     INSERT INTO users (google_sub, email, name, picture)
@@ -38,11 +48,13 @@ export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
           name       = COALESCE(users.name, EXCLUDED.name),
           picture    = EXCLUDED.picture,
           updated_at = NOW()
-    RETURNING id, email, name, picture, google_sub, plan
+    RETURNING ${USER_COLS}
     `,
     [profile.sub, profile.email, profile.name, profile.picture ?? null],
   );
-  return toResponse(rows[0]);
+  const user = rows[0];
+  if (isNew) await createWelcomeProject(user.id);
+  return toResponse(user);
 }
 
 export async function signupWithEmail(
@@ -59,16 +71,18 @@ export async function signupWithEmail(
     `
     INSERT INTO users (email, password_hash, name)
     VALUES ($1, $2, $3)
-    RETURNING id, email, name, picture, google_sub, plan
+    RETURNING ${USER_COLS}
     `,
     [email, password_hash, name],
   );
-  return toResponse(rows[0]);
+  const user = rows[0];
+  await createWelcomeProject(user.id);
+  return toResponse(user);
 }
 
 export async function loginWithEmail(email: string, password: string): Promise<AuthResponse> {
   const { rows } = await query<UserRecord & { password_hash: string | null }>(
-    "SELECT id, email, name, picture, google_sub, plan, password_hash FROM users WHERE email = $1",
+    `SELECT ${USER_COLS}, password_hash FROM users WHERE email = $1`,
     [email],
   );
   const user = rows[0];
@@ -84,7 +98,7 @@ export async function loginWithEmail(email: string, password: string): Promise<A
 
 export async function getCurrentUser(userId: string) {
   const { rows } = await query<UserRecord>(
-    "SELECT id, email, name, picture, google_sub, plan FROM users WHERE id = $1",
+    `SELECT ${USER_COLS} FROM users WHERE id = $1`,
     [userId],
   );
   if (!rows[0]) throw new HttpError(404, "Usuário não encontrado.");
