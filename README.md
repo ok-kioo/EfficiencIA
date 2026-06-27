@@ -23,12 +23,12 @@ cd backend
 cp .env.example .env   # configure DATABASE_URL, GOOGLE_CLIENT_ID, JWT_SECRET
 npm install
 npm run migrate        # cria as tabelas no Postgres
-npm run dev            # http://localhost:3001
+npm run dev            # http://localhost:3000
 ```
 
 Configure no frontend (`.env` na raiz, copie de `.env.example`):
 ```
-VITE_API_URL=http://localhost:3001
+VITE_API_URL=http://localhost:3000
 VITE_GOOGLE_CLIENT_ID=<mesmo client id do backend, deixe vazio para esconder o botão>
 ```
 

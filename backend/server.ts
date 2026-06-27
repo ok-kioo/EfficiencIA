@@ -4,14 +4,14 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
-import { authRoutes } from "./modules/auth/routes/index.js";
-import { usersRoutes } from "./modules/users/routes/index.js";
-import { projectsRoutes } from "./modules/projects/routes/index.js";
-import { analysesRoutes } from "./modules/analyses/routes/index.js";
-import { errorHandler } from "./infra/errors.js";
+import { authRoutes } from "./src/modules/auth/routes/index.js";
+import { usersRoutes } from "./src/modules/users/routes/index.js";
+import { projectsRoutes } from "./src/modules/projects/routes/index.js";
+import { analysesRoutes } from "./src/modules/analyses/routes/index.js";
+import { errorHandler } from "./src/infra/errors.js";
 
 const app = express();
-const PORT = Number(process.env.PORT ?? 3001);
+const PORT = Number(process.env.PORT ?? 3000);
 const FRONTEND_URL = process.env.FRONTEND_URL ?? "http://localhost:5173";
 
 app.use(helmet());
@@ -36,6 +36,6 @@ app.use("/api/analyses", analysesRoutes);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`🚀 EfficiencIA backend rodando em http://localhost:${PORT}`);
-  console.log(`   CORS liberado para: ${FRONTEND_URL}`);
+  console.log(`Rodando em http://localhost:${PORT}`);
+  console.log(`CORS liberado para: ${FRONTEND_URL}`);
 });
