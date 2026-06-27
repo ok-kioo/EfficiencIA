@@ -37,7 +37,7 @@ services:
       PORT: 3000
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
       DATABASE_URL: postgresql://${POSTGRES_USER:-efficiencia}:${POSTGRES_PASSWORD:-efficiencia}@postgres:5432/${POSTGRES_DB:-efficiencia}
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-trocar-em-producao}
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env (use openssl rand -hex 32)}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://n8n:5678/webhook/assist-bpmn}
