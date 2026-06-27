@@ -1,5 +1,9 @@
 import { DOMParser } from "@xmldom/xmldom";
 
+//todo: metadata deve ser extraída do frontend e não do BPMN, pois o BPMN não possui campos para armazenar essas informações
+//todo: sanitizar entradas
+//todo: O campo 'condition' no edge note deve ser preeenchido pelo nome da condição do gateway caso o nó seja um gateway, caso contrário, não deve ser preenchido. Se o nome do fluxo de sequência estiver vazio, o campo 'condition' deve ser preenchido com uma string vazia.
+
 const N8N_URL =
   process.env.N8N_WEBHOOK_URL ?? "http://localhost:5678/webhook/assist-bpmn";
 const TIMEOUT_MS = Number(process.env.N8N_TIMEOUT_MS ?? 60000);
@@ -130,7 +134,7 @@ export function buildAnalysisPayload(input: AnalysisInput): AnalysisPayload {
 
   if (input.bpmnXml) {
     const doc = new DOMParser({
-      errorHandler: { warning: () => {}, error: () => {}, fatalError: () => {} },
+      errorHandler: () => {console.log("Error parsing BPMN XML")},
     }).parseFromString(input.bpmnXml, "text/xml");
 
     const visit = (node: ChildNode | null) => {
