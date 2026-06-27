@@ -4,9 +4,14 @@ import type { AuthResponse, LoginRequest, SignupRequest, User } from "../@types/
 const TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";
 
+function normalize(u: User): User {
+  return { ...u, plan: (u.plan ?? "free") as User["plan"] };
+}
+
 function persist(res: AuthResponse) {
+  const user = normalize(res.user);
   localStorage.setItem(TOKEN_KEY, res.token);
-  localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export const authService = {
@@ -34,8 +39,9 @@ export const authService = {
 
   async me(): Promise<User> {
     const { data } = await api.get<{ user: User }>("/api/auth/me");
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-    return data.user;
+    const user = normalize(data.user);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    return user;
   },
 
   async requestPasswordReset(email: string): Promise<{ message: string; resetUrl?: string }> {
@@ -67,6 +73,11 @@ export const authService = {
   getUser(): User | null {
     if (typeof window === "undefined") return null;
     const u = localStorage.getItem(USER_KEY);
-    return u ? (JSON.parse(u) as User) : null;
+    if (!u) return null;
+    try {
+      return normalize(JSON.parse(u) as User);
+    } catch {
+      return null;
+    }
   },
 };

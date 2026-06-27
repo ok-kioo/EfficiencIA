@@ -24,15 +24,24 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(6),
 });
 
+export type UserPlan = "free" | "premium";
+
 export interface UserRecord {
   id: string;
   email: string;
   name: string;
   picture: string | null;
   google_sub: string | null;
+  plan?: UserPlan;
 }
 
 export interface AuthResponse {
   token: string;
-  user: { id: string; email: string; name: string; picture: string | null };
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    picture: string | null;
+    plan: UserPlan;
+  };
 }

@@ -22,6 +22,7 @@ function toResponse(user: UserRecord): AuthResponse {
       email: user.email,
       name: user.name,
       picture: user.picture,
+      plan: (user.plan ?? "free") as "free" | "premium",
     },
   };
 }
@@ -37,7 +38,7 @@ export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
           name       = COALESCE(users.name, EXCLUDED.name),
           picture    = EXCLUDED.picture,
           updated_at = NOW()
-    RETURNING id, email, name, picture, google_sub
+    RETURNING id, email, name, picture, google_sub, plan
     `,
     [profile.sub, profile.email, profile.name, profile.picture ?? null],
   );
@@ -58,7 +59,7 @@ export async function signupWithEmail(
     `
     INSERT INTO users (email, password_hash, name)
     VALUES ($1, $2, $3)
-    RETURNING id, email, name, picture, google_sub
+    RETURNING id, email, name, picture, google_sub, plan
     `,
     [email, password_hash, name],
   );
@@ -67,7 +68,7 @@ export async function signupWithEmail(
 
 export async function loginWithEmail(email: string, password: string): Promise<AuthResponse> {
   const { rows } = await query<UserRecord & { password_hash: string | null }>(
-    "SELECT id, email, name, picture, google_sub, password_hash FROM users WHERE email = $1",
+    "SELECT id, email, name, picture, google_sub, plan, password_hash FROM users WHERE email = $1",
     [email],
   );
   const user = rows[0];
@@ -83,7 +84,7 @@ export async function loginWithEmail(email: string, password: string): Promise<A
 
 export async function getCurrentUser(userId: string) {
   const { rows } = await query<UserRecord>(
-    "SELECT id, email, name, picture, google_sub FROM users WHERE id = $1",
+    "SELECT id, email, name, picture, google_sub, plan FROM users WHERE id = $1",
     [userId],
   );
   if (!rows[0]) throw new HttpError(404, "Usuário não encontrado.");
@@ -92,7 +93,6 @@ export async function getCurrentUser(userId: string) {
 
 export interface ForgotPasswordResult {
   message: string;
-  /** Apenas em desenvolvimento — facilita testes sem provedor de e-mail. */
   resetUrl?: string;
 }
 
@@ -117,7 +117,6 @@ export async function requestPasswordReset(email: string): Promise<ForgotPasswor
   );
 
   const resetUrl = `${FRONTEND_URL}/reset-password?token=${rawToken}`;
-  // Sem provedor de e-mail ainda; o link é logado para o operador.
   console.log(`[password-reset] ${email} -> ${resetUrl}`);
 
   const result: ForgotPasswordResult = { message: genericMessage };
@@ -129,7 +128,12 @@ export async function requestPasswordReset(email: string): Promise<ForgotPasswor
 
 export async function resetPassword(token: string, newPassword: string): Promise<void> {
   const tokenHash = sha256(token);
-  const { rows } = await query<{ id: string; user_id: string; used_at: string | null; expires_at: string }>(
+  const { rows } = await query<{
+    id: string;
+    user_id: string;
+    used_at: string | null;
+    expires_at: string;
+  }>(
     `SELECT id, user_id, used_at, expires_at FROM password_resets WHERE token_hash = $1`,
     [tokenHash],
   );
