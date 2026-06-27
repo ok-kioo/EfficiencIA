@@ -26,6 +26,8 @@ interface BpmnToolbarProps {
   onDiscard: () => void;
   canDiscard: boolean;
   analyzing?: boolean;
+  /** Quando true, o botão "Analisar" recebe um leve realce de "Recomendado". */
+  highlightAnalyze?: boolean;
 }
 
 export function BpmnToolbar({
@@ -35,6 +37,7 @@ export function BpmnToolbar({
   onDiscard,
   canDiscard,
   analyzing = false,
+  highlightAnalyze = false,
 }: BpmnToolbarProps) {
   const [discardOpen, setDiscardOpen] = useState(false);
 
@@ -45,7 +48,7 @@ export function BpmnToolbar({
   }
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2">
+    <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-border bg-card p-2">
       <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition hover:bg-muted">
         <FolderOpen size={14} strokeWidth={1.75} />
         Importar
@@ -100,16 +103,32 @@ export function BpmnToolbar({
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="ml-auto">
+      <div className="ml-auto flex flex-col items-end gap-1">
         <button
           type="button"
           onClick={onAnalyze}
           disabled={analyzing}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-xs font-semibold text-primary-foreground transition hover:bg-primary-deep disabled:cursor-not-allowed disabled:opacity-60"
+          className={`group relative inline-flex h-10 items-center gap-2 rounded-md px-5 text-sm font-semibold text-primary-foreground shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 ${
+            highlightAnalyze
+              ? "bg-gradient-to-r from-primary via-primary to-accent ring-2 ring-accent/40 hover:from-primary-deep hover:to-accent hover:ring-accent/60"
+              : "bg-primary hover:bg-primary-deep"
+          }`}
         >
-          <Sparkles size={14} strokeWidth={2} />
+          <Sparkles
+            size={16}
+            strokeWidth={2}
+            className={highlightAnalyze ? "animate-pulse" : ""}
+          />
           {analyzing ? "Analisando…" : "Analisar com IA"}
+          {highlightAnalyze && !analyzing && (
+            <span className="ml-1 rounded-full bg-white/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider">
+              Recomendado
+            </span>
+          )}
         </button>
+        <p className="max-w-[280px] text-right text-[10px] leading-tight text-muted-foreground">
+          Receba recomendações inteligentes que vão além das validações tradicionais.
+        </p>
       </div>
     </div>
   );

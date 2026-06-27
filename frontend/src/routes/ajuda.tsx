@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useRouter } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowRight,
@@ -6,10 +6,12 @@ import {
   CircleDot,
   Diamond,
   HelpCircle,
+  LayoutDashboard,
   MoveRight,
   Square,
   Users,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 export const Route = createFileRoute("/ajuda")({
   head: () => ({
@@ -180,23 +182,48 @@ const practices = [
 ];
 
 function HelpPage() {
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  function handleBack(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (!isAuthenticated) return; // deixa o Link normal levar para "/"
+    event.preventDefault();
+    // Se houver histórico, volta. Senão, vai para o dashboard.
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.history.back();
+    } else {
+      router.navigate({ to: "/dashboard" });
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
           <Link
-            to="/"
+            to={isAuthenticated ? "/dashboard" : "/"}
+            onClick={handleBack}
             className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground"
           >
             <ArrowLeft size={15} strokeWidth={2} />
             Voltar
           </Link>
-          <Link
-            to="/signup"
-            className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-deep"
-          >
-            Criar conta
-          </Link>
+          {isAuthenticated ? (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-deep"
+            >
+              <LayoutDashboard size={14} strokeWidth={2} />
+              Ir para o Dashboard
+            </Link>
+          ) : (
+            <Link
+              to="/signup"
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-deep"
+            >
+              Criar conta
+            </Link>
+          )}
         </div>
       </header>
 
@@ -311,21 +338,23 @@ function HelpPage() {
           </div>
         </section>
 
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 text-center">
-          <p className="font-display text-lg font-semibold text-foreground">
-            Pronto para experimentar?
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Crie sua conta e desenhe seu primeiro fluxo em minutos.
-          </p>
-          <Link
-            to="/signup"
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-deep"
-          >
-            Começar agora
-            <ArrowRight size={15} strokeWidth={2} />
-          </Link>
-        </div>
+        {!isAuthenticated && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 text-center">
+            <p className="font-display text-lg font-semibold text-foreground">
+              Pronto para experimentar?
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Crie sua conta e desenhe seu primeiro fluxo em minutos.
+            </p>
+            <Link
+              to="/signup"
+              className="mt-4 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-deep"
+            >
+              Começar agora
+              <ArrowRight size={15} strokeWidth={2} />
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );
