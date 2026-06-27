@@ -126,9 +126,6 @@ export function BpmnToolbar({
             </span>
           )}
         </button>
-        <p className="max-w-[280px] text-right text-[10px] leading-tight text-muted-foreground">
-          Receba recomendações inteligentes que vão além das validações tradicionais.
-        </p>
       </div>
     </div>
   );

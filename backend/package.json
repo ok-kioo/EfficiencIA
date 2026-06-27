@@ -7,7 +7,7 @@
     "dev": "tsx watch server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "migrate": "tsx infra/migrate.ts"
+    "migrate": "tsx src/infra/migrate.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
