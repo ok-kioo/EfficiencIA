@@ -49,8 +49,6 @@ export function WelcomeOnboarding() {
   if (!open || !user) return null;
 
   async function dismiss() {
-    if (closing) return;
-    setClosing(true);
     try {
       const updated = await userService.completeOnboarding();
       setUser({ ...user!, ...updated });
@@ -63,7 +61,6 @@ export function WelcomeOnboarding() {
       }
     } finally {
       setOpen(false);
-      setClosing(false);
     }
   }
 
