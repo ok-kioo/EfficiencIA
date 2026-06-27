@@ -10,4 +10,8 @@ export const userService = {
     const { data } = await api.post<User>("/api/users/me/downgrade");
     return data;
   },
+  async completeOnboarding(): Promise<User> {
+    const { data } = await api.post<User>("/api/users/me/onboarding/complete");
+    return data;
+  },
 };
