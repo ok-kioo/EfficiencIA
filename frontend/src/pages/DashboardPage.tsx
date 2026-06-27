@@ -219,7 +219,7 @@ export function DashboardPage() {
               </div>
             ) : (
               <ul className="space-y-2">
-                {recent.map((a) => {
+                {recent.slice(0, 5).map((a) => {
                   const st = statusLabel(a.status);
                   return (
                     <li
