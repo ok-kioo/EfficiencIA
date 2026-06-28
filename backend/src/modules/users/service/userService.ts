@@ -1,34 +1,32 @@
-import { query } from "../../../infra/db.js";
 import { HttpError } from "../../../infra/errors.js";
-import type { User, UserPlan } from "../domain/User.js";
+import type { User, UserPlan } from "../domain/entity/User.js";
+import type { UserRepository } from "../domain/repository/UserRepository";
+import { userRepository } from "../domain/repository/UserPgRepository";
 
-const SELECT =
-  "SELECT id, email, name, picture, plan, plan_updated_at, onboarded_at FROM users";
+export function makeUserService(repo: UserRepository) {
+  async function findById(id: string): Promise<User> {
+    const user = await repo.findById(id);
+    if (!user) throw new HttpError(404, "Usuário não encontrado.");
+    return user;
+  }
 
-export async function findById(id: string): Promise<User> {
-  const { rows } = await query<User>(`${SELECT} WHERE id = $1`, [id]);
-  if (!rows[0]) throw new HttpError(404, "Usuário não encontrado.");
-  return rows[0];
+  async function setPlan(id: string, plan: UserPlan): Promise<User> {
+    const user = await repo.setPlan(id, plan);
+    if (!user) throw new HttpError(404, "Usuário não encontrado.");
+    return user;
+  }
+
+  async function completeOnboarding(id: string): Promise<User> {
+    const user = await repo.completeOnboarding(id);
+    if (!user) throw new HttpError(404, "Usuário não encontrado.");
+    return user;
+  }
+
+  return { findById, setPlan, completeOnboarding };
 }
 
-export async function setPlan(id: string, plan: UserPlan): Promise<User> {
-  const { rows } = await query<User>(
-    `UPDATE users SET plan = $2, plan_updated_at = NOW(), updated_at = NOW()
-     WHERE id = $1
-     RETURNING id, email, name, picture, plan, plan_updated_at, onboarded_at`,
-    [id, plan],
-  );
-  if (!rows[0]) throw new HttpError(404, "Usuário não encontrado.");
-  return rows[0];
-}
+const defaultService = makeUserService(userRepository);
 
-export async function completeOnboarding(id: string): Promise<User> {
-  const { rows } = await query<User>(
-    `UPDATE users SET onboarded_at = COALESCE(onboarded_at, NOW()), updated_at = NOW()
-     WHERE id = $1
-     RETURNING id, email, name, picture, plan, plan_updated_at, onboarded_at`,
-    [id],
-  );
-  if (!rows[0]) throw new HttpError(404, "Usuário não encontrado.");
-  return rows[0];
-}
+export const findById = defaultService.findById;
+export const setPlan = defaultService.setPlan;
+export const completeOnboarding = defaultService.completeOnboarding;

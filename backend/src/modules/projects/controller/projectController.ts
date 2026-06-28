@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { createProjectSchema, updateProjectSchema } from "../domain/Project.js";
+import { createProjectSchema, updateProjectSchema } from "../domain/entity/Project.js";
 import * as service from "../service/projectService.js";
 
 export async function listHandler(req: Request, res: Response, next: NextFunction) {

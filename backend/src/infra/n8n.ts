@@ -1,8 +1,6 @@
 import { DOMParser } from "@xmldom/xmldom";
-
-//todo: metadata deve ser extraída do frontend e não do BPMN, pois o BPMN não possui campos para armazenar essas informações
-//todo: sanitizar entradas
-//todo: O campo 'condition' no edge note deve ser preeenchido pelo nome da condição do gateway caso o nó seja um gateway, caso contrário, não deve ser preenchido. Se o nome do fluxo de sequência estiver vazio, o campo 'condition' deve ser preenchido com uma string vazia.
+import { z } from "zod";
+import { HttpError } from "./errors.js";
 
 const N8N_URL =
   process.env.N8N_WEBHOOK_URL ?? "http://localhost:5678/webhook/assist-bpmn";
@@ -11,23 +9,34 @@ const TIMEOUT_MS = Number(process.env.N8N_TIMEOUT_MS ?? 60000);
 const DEFAULT_OBJECTIVE =
   "Avaliar possíveis gargalos, erros e inconsistências no processo BPMN";
 
-interface ActivityMetadata {
-  id?: string;
-  name?: string;
-  type?: string;
-  responsible?: string;
-  resource?: string;
-  averageTimeMinutes?: number | string;
-  cost?: number | string;
-  demandVolume?: number | string;
-  criticality?: string;
-  observations?: string;
-  area?: string;
-  stageType?: string;
-  monthlyVolume?: number | string;
-  averageTime?: number | string;
-  [key: string]: unknown;
+const CONTROL_CHARS = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+
+function sanitizeString(value: unknown, maxLen = 500): string {
+  if (value === null || value === undefined) return "";
+  const raw = typeof value === "string" ? value : String(value);
+  return raw.replace(CONTROL_CHARS, "").trim().slice(0, maxLen);
 }
+
+function sanitizeNumber(value: unknown): number | "" {
+  if (value === "" || value === null || value === undefined) return "";
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return "";
+  return n;
+}
+
+const activityMetadataSchema = z.object({
+  id: z.string().min(1),
+  responsible: z.unknown().optional(),
+  averageTime: z.unknown().optional(),
+  monthlyVolume: z.unknown().optional(),
+  stageType: z.unknown().optional(),
+  cost: z.unknown().optional(),
+  area: z.unknown().optional(),
+  criticality: z.unknown().optional(),
+  observations: z.unknown().optional(),
+});
+
+type ActivityMetadataInput = z.infer<typeof activityMetadataSchema>;
 
 export interface AnalysisInput {
   projectId: string;
@@ -47,7 +56,7 @@ export interface GraphEdge {
   id: string;
   source: string;
   target: string;
-  condition?: string;
+  condition?: string; // só presente quando source é um gateway
 }
 
 export interface AnalysisPayload {
@@ -67,6 +76,14 @@ export interface AnalysisResult {
   finalAssessment: { score: number; explanation: string };
 }
 
+const GATEWAY_TAGS = new Set([
+  "exclusiveGateway",
+  "parallelGateway",
+  "inclusiveGateway",
+  "eventBasedGateway",
+  "complexGateway",
+]);
+
 const NODE_TAGS = new Set([
   "task",
   "userTask",
@@ -83,11 +100,7 @@ const NODE_TAGS = new Set([
   "intermediateThrowEvent",
   "intermediateCatchEvent",
   "boundaryEvent",
-  "exclusiveGateway",
-  "parallelGateway",
-  "inclusiveGateway",
-  "eventBasedGateway",
-  "complexGateway",
+  ...GATEWAY_TAGS,
 ]);
 
 function localName(tag: string): string {
@@ -95,35 +108,34 @@ function localName(tag: string): string {
   return idx === -1 ? tag : tag.slice(idx + 1);
 }
 
-function buildActivityIndex(activities: unknown): Map<string, ActivityMetadata> {
-  const map = new Map<string, ActivityMetadata>();
+function buildActivityIndex(
+  activities: unknown,
+): Map<string, ActivityMetadataInput> {
+  const map = new Map<string, ActivityMetadataInput>();
   if (!Array.isArray(activities)) return map;
   for (const raw of activities) {
-    if (!raw || typeof raw !== "object") continue;
-    const act = raw as ActivityMetadata;
-    if (act.id) map.set(String(act.id), act);
+    const parsed = activityMetadataSchema.safeParse(raw);
+    if (!parsed.success) continue;
+    map.set(parsed.data.id, parsed.data);
   }
   return map;
 }
 
-function buildMetadata(act: ActivityMetadata | undefined): Record<string, unknown> | undefined {
+function buildMetadata(
+  act: ActivityMetadataInput | undefined,
+): Record<string, unknown> | undefined {
   if (!act) return undefined;
   const meta: Record<string, unknown> = {
-    responsible: act.responsible ?? "",
-    averageTime:
-      act.averageTime ??
-      (act.averageTimeMinutes !== undefined ? act.averageTimeMinutes : ""),
-    monthlyVolume:
-      act.monthlyVolume ?? (act.demandVolume !== undefined ? act.demandVolume : ""),
-    stageType: act.stageType ?? act.type ?? "",
-    cost: act.cost ?? "",
-    area: act.area ?? act.resource ?? "",
-    criticality: act.criticality ?? "",
-    observations: act.observations ?? "",
+    responsible: sanitizeString(act.responsible),
+    averageTime: sanitizeNumber(act.averageTime),
+    monthlyVolume: sanitizeNumber(act.monthlyVolume),
+    stageType: sanitizeString(act.stageType, 100),
+    cost: sanitizeNumber(act.cost),
+    area: sanitizeString(act.area),
+    criticality: sanitizeString(act.criticality, 50),
+    observations: sanitizeString(act.observations, 2000),
   };
-  const hasValue = Object.values(meta).some(
-    (v) => v !== "" && v !== undefined && v !== null,
-  );
+  const hasValue = Object.values(meta).some((v) => v !== "" && v !== undefined);
   return hasValue ? meta : undefined;
 }
 
@@ -131,10 +143,21 @@ export function buildAnalysisPayload(input: AnalysisInput): AnalysisPayload {
   const nodes: GraphNode[] = [];
   const edges: GraphEdge[] = [];
   const activityIndex = buildActivityIndex(input.activities);
+  const nodeTypeById = new Map<string, string>();
+  const pendingEdges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    name: string;
+  }> = [];
 
   if (input.bpmnXml) {
     const doc = new DOMParser({
-      errorHandler: () => {console.log("Error parsing BPMN XML")},
+      errorHandler: (level, msg) => {
+        if (level === "error" || level === "fatalError") {
+          throw new HttpError(422, `BPMN inválido: ${msg}`);
+        }
+      },
     }).parseFromString(input.bpmnXml, "text/xml");
 
     const visit = (node: ChildNode | null) => {
@@ -144,20 +167,21 @@ export function buildAnalysisPayload(input: AnalysisInput): AnalysisPayload {
         const el = node as unknown as Element;
         const tag = localName(el.tagName ?? el.nodeName ?? "");
         const id = el.getAttribute?.("id") ?? "";
-        const name = el.getAttribute?.("name") ?? "";
+        const name = sanitizeString(el.getAttribute?.("name") ?? "", 200);
 
         if (tag === "sequenceFlow" && id) {
-          edges.push({
+          pendingEdges.push({
             id,
             source: el.getAttribute?.("sourceRef") ?? "",
             target: el.getAttribute?.("targetRef") ?? "",
-            ...(name ? { condition: name } : {}),
+            name,
           });
         } else if (NODE_TAGS.has(tag) && id) {
           const meta = buildMetadata(activityIndex.get(id));
           const graphNode: GraphNode = { id, type: tag, name };
           if (meta) graphNode.metadata = meta;
           nodes.push(graphNode);
+          nodeTypeById.set(id, tag);
         }
       }
       const children = (node as { childNodes?: ArrayLike<ChildNode> }).childNodes;
@@ -167,13 +191,28 @@ export function buildAnalysisPayload(input: AnalysisInput): AnalysisPayload {
     };
 
     visit(doc as unknown as ChildNode);
+
+    // Edges são resolvidos após visitar todos os nós, para sabermos o tipo do source.
+    for (const e of pendingEdges) {
+      const sourceType = nodeTypeById.get(e.source);
+      const isGatewaySource = sourceType ? GATEWAY_TAGS.has(sourceType) : false;
+      const edge: GraphEdge = { id: e.id, source: e.source, target: e.target };
+      if (isGatewaySource) edge.condition = e.name; // "" quando vazio
+      edges.push(edge);
+    }
   }
 
-  return {
-    processName: input.projectName,
+  const payload: AnalysisPayload = {
+    processName: sanitizeString(input.projectName, 200) || "Processo sem nome",
     objective: DEFAULT_OBJECTIVE,
     graph: { nodes, edges },
   };
+
+  if (payload.graph.nodes.length === 0) {
+    throw new HttpError(422, "O BPMN não contém nós analisáveis.");
+  }
+
+  return payload;
 }
 
 export async function callAnalysisAgent(input: AnalysisInput): Promise<AnalysisResult> {

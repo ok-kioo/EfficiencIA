@@ -28,7 +28,8 @@ import {
   extractActivitiesFromBpmn,
   mergeExtractedActivities,
 } from "../utils/bpmnUtils";
-import { downloadFile } from "../utils/downloadFile";
+import { exportBpmn, type ExportFormat } from "../utils/bpmnExport";
+import { activitiesToMetadata } from "../utils/activityToMetadata";
 import { clearDraft, loadDraft } from "../lib/modeler/autosave";
 import { useModelerAutosave } from "../hooks/useModelerAutosave";
 import { useBpmnValidation } from "../hooks/useBpmnValidation";
@@ -125,6 +126,8 @@ export function ModelerPage() {
   } | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [pendingExportFormat, setPendingExportFormat] =
+    useState<ExportFormat | null>(null);
   const [discardDialogOpen, setDiscardDialogOpen] = useState(false);
   const modelerRef = useRef<BpmnModelerLib | null>(null);
   const restoredToastRef = useRef(false);
@@ -247,22 +250,30 @@ export function ModelerPage() {
     setBpmnXml(content);
   }
 
-  function doExport() {
+  async function doExport(format: ExportFormat) {
     const m = modelerRef.current;
     if (!m) return;
-    m.saveXML({ format: true }).then((result) => {
-      if (!result.xml) return;
-      downloadFile(`${processName || "processo"}.bpmn`, result.xml, "application/xml");
-    });
+    try {
+      await exportBpmn(m, format, processName || "processo");
+      const label =
+        format === "xml" ? "XML" : format === "png" ? "imagem" : "PDF";
+      toast.success(`Download do ${label} iniciado.`);
+    } catch (err) {
+      console.error("[export]", err);
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível exportar.",
+      );
+    }
   }
 
-  function handleExport() {
+  function handleExport(format: ExportFormat) {
     // Se ainda não analisou e o usuário é Premium, sugere análise antes.
     if (!isFree && hasAnalyses === false) {
+      setPendingExportFormat(format);
       setExportDialogOpen(true);
       return;
     }
-    doExport();
+    void doExport(format);
   }
 
   function handleBpmnChange(xml: string) {
@@ -295,17 +306,18 @@ export function ModelerPage() {
     setAnalyzing(true);
     try {
       let pid = projectId;
+      const activitiesPayload = activitiesToMetadata(activities);
       if (pid) {
         await projectService.update(pid, {
           name: processName,
           bpmnXml,
-          activities,
+          activities: activitiesPayload,
         });
       } else {
         const created = await projectService.create({
           name: processName || "Novo processo",
           bpmnXml,
-          activities,
+          activities: activitiesPayload,
         });
         pid = created.id;
       }
@@ -422,14 +434,17 @@ export function ModelerPage() {
       <AnalyzeBeforeActionDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
-        actionLabel="exportar o XML"
+        actionLabel="exportar o processo"
         continueLabel="Exportar mesmo assim"
         onContinueWithout={() => {
           setExportDialogOpen(false);
-          doExport();
+          const fmt = pendingExportFormat ?? "xml";
+          setPendingExportFormat(null);
+          void doExport(fmt);
         }}
         onAnalyzeFirst={() => {
           setExportDialogOpen(false);
+          setPendingExportFormat(null);
           handleAnalyze();
         }}
       />

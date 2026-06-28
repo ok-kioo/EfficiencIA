@@ -46,7 +46,7 @@ services:
       - "3000:3000"
     volumes:
       - ./backend:/app
-      - backend-node-modules:/app/node_modules
+      - /app/node_modules
 
   frontend:
     build:
@@ -61,7 +61,7 @@ services:
       - "8080:8080"
     volumes:
       - ./frontend:/app
-      - frontend-node-modules:/app/node_modules
+      - /app/node_modules
 
   n8n:
     image: n8nio/n8n:latest
@@ -97,8 +97,6 @@ services:
 
 volumes:
   postgres-data:
-  backend-node-modules:
-  frontend-node-modules:
   n8n-data:
   qdrant-data:
   ollama-data:

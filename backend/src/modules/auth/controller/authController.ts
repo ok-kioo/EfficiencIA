@@ -5,7 +5,7 @@ import {
   forgotPasswordSchema,
   googleLoginSchema,
   resetPasswordSchema,
-} from "../domain/Auth.js";
+} from "../domain/entity/Auth.js";
 import {
   getCurrentUser,
   loginWithEmail,

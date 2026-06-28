@@ -1,7 +1,11 @@
 import { useState } from "react";
 import {
   AlertTriangle,
+  ChevronDown,
   Download,
+  FileImage,
+  FileText,
+  FileCode2,
   FolderOpen,
   Sparkles,
   Trash2,
@@ -18,10 +22,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import type { ExportFormat } from "../../utils/bpmnExport";
 
 interface BpmnToolbarProps {
   onImport: (file: File) => void;
-  onExport: () => void;
+  onExport: (format: ExportFormat) => void;
   onAnalyze: () => void;
   onDiscard: () => void;
   canDiscard: boolean;
@@ -60,14 +71,47 @@ export function BpmnToolbar({
         />
       </label>
 
-      <button
-        type="button"
-        onClick={onExport}
-        className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition hover:bg-muted"
-      >
-        <Download size={14} strokeWidth={1.75} />
-        Exportar
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition hover:bg-muted"
+          >
+            <Download size={14} strokeWidth={1.75} />
+            Exportar
+            <ChevronDown size={12} strokeWidth={1.75} className="opacity-60" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-52">
+          <DropdownMenuItem onClick={() => onExport("xml")} className="gap-2">
+            <FileCode2 size={14} className="text-muted-foreground" />
+            <div className="flex flex-col">
+              <span className="text-sm">XML (.bpmn)</span>
+              <span className="text-[10px] text-muted-foreground">
+                Reimportável em qualquer editor BPMN
+              </span>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onExport("png")} className="gap-2">
+            <FileImage size={14} className="text-muted-foreground" />
+            <div className="flex flex-col">
+              <span className="text-sm">Imagem (.png)</span>
+              <span className="text-[10px] text-muted-foreground">
+                Boa para apresentações e documentos
+              </span>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onExport("pdf")} className="gap-2">
+            <FileText size={14} className="text-muted-foreground" />
+            <div className="flex flex-col">
+              <span className="text-sm">PDF (.pdf)</span>
+              <span className="text-[10px] text-muted-foreground">
+                Pronto para impressão e compartilhamento
+              </span>
+            </div>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
         <AlertDialogTrigger asChild>
