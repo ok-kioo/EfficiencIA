@@ -4,6 +4,7 @@ import { findOwned } from "../../projects/service/projectService.js";
 import type { Analysis } from "../domain/entity/Analysis.js";
 import type { AnalysisRepository } from "../domain/repository/AnalysisRepository";
 import { analysisRepository } from "../domain/repository/AnalysisPgRepository";
+import { v4 as uuidv4 } from "uuid";
 
 export interface RecentAnalysis extends Analysis {
   project_name: string;
@@ -41,6 +42,7 @@ export function makeAnalysisService(repo: AnalysisRepository) {
 
     try {
       const result = await callAnalysisAgent({
+        id: analysis.id,
         projectId: project.id,
         projectName: project.name,
         bpmnXml: project.bpmn_xml,
@@ -63,3 +65,4 @@ export const listForProject = defaultService.listForProject;
 export const listRecent = defaultService.listRecent;
 export const findOne = defaultService.findOne;
 export const createForProject = defaultService.createForProject;
+

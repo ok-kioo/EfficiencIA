@@ -10,6 +10,7 @@
     "migrate": "tsx src/infra/migrate.ts"
   },
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "@xmldom/xmldom": "^0.9.10",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -20,6 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "pg": "^8.12.0",
+    "uuid": "^14.0.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {

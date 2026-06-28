@@ -63,9 +63,26 @@ services:
       - ./frontend:/app
       - /app/node_modules
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   n8n:
     image: n8nio/n8n:latest
     restart: unless-stopped
+    depends_on:
+      - redis
+      - backend
     environment:
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PORT: 5678
@@ -100,3 +117,4 @@ volumes:
   n8n-data:
   qdrant-data:
   ollama-data:
+  redis-data:

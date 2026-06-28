@@ -39,6 +39,7 @@ const activityMetadataSchema = z.object({
 type ActivityMetadataInput = z.infer<typeof activityMetadataSchema>;
 
 export interface AnalysisInput {
+  id: string;
   projectId: string;
   projectName: string;
   bpmnXml: string;
@@ -60,6 +61,7 @@ export interface GraphEdge {
 }
 
 export interface AnalysisPayload {
+  id: string;
   processName: string;
   objective: string;
   graph: {
@@ -203,6 +205,7 @@ export function buildAnalysisPayload(input: AnalysisInput): AnalysisPayload {
   }
 
   const payload: AnalysisPayload = {
+    id: sanitizeString(input.id, 100),
     processName: sanitizeString(input.projectName, 200) || "Processo sem nome",
     objective: DEFAULT_OBJECTIVE,
     graph: { nodes, edges },
@@ -228,7 +231,10 @@ export async function callAnalysisAgent(input: AnalysisInput): Promise<AnalysisR
       signal: controller.signal,
     });
     if (!response.ok) {
-      throw new Error(`Agente respondeu HTTP ${response.status}`);
+      const bodyText = await response.text().catch(() => "");
+      throw new Error(
+        `Agente respondeu HTTP ${response.status} em ${N8N_URL}: ${bodyText.slice(0, 500)}`,
+      );
     }
     const data = (await response.json()) as Partial<AnalysisResult>;
     return {
@@ -243,6 +249,21 @@ export async function callAnalysisAgent(input: AnalysisInput): Promise<AnalysisR
         explanation: String(data.finalAssessment?.explanation ?? ""),
       },
     };
+  } catch (err) {
+    if (err instanceof HttpError) throw err;
+    const cause = err instanceof Error ? err : new Error(String(err));
+    if (cause.name === "AbortError") {
+      throw new Error(
+        `Timeout (${TIMEOUT_MS}ms) ao contatar agente em ${N8N_URL}`,
+      );
+    }
+    // TypeError: fetch failed → quase sempre rede (ECONNREFUSED/DNS/socket fechado)
+    if (cause.message === "fetch failed" || cause.name === "TypeError") {
+      const inner = (cause as { cause?: { code?: string; message?: string } }).cause;
+      const detail = inner?.code ?? inner?.message ?? cause.message;
+      throw new Error(`Falha ao contatar agente em ${N8N_URL}: ${detail}`);
+    }
+    throw cause;
   } finally {
     clearTimeout(timeout);
   }
