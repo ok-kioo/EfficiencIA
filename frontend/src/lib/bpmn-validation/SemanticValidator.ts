@@ -40,7 +40,11 @@ export function validate(modeler: Any): Violation[] {
   if (!modeler) return [];
 
   const elementRegistry = modeler.get("elementRegistry");
-  const all: Any[] = elementRegistry.getAll();
+  const all: Any[] = elementRegistry
+    .getAll()
+    // Ignora labels (rótulos de setas, eventos e tasks aparecem como shapes separados
+    // apontando para o elemento real via labelTarget) para não gerar violações duplicadas.
+    .filter((el: Any) => !el?.labelTarget);
   const violations: Violation[] = [];
 
   const flowNodes = all.filter(

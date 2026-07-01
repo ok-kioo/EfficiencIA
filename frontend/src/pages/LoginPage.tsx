@@ -1,18 +1,23 @@
 import { LogIn } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { LoginForm } from "../components/auth/LoginForm";
 
 export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8">
-        <div className="mb-6 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+        <Link
+          to="/"
+          aria-label="Voltar para a página inicial"
+          className="mb-6 inline-flex items-center gap-2 rounded-md outline-none transition hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <LogIn size={16} strokeWidth={1.75} />
-          </div>
+          </span>
           <h1 className="font-display text-lg font-semibold tracking-tight text-foreground">
             EfficiencIA
           </h1>
-        </div>
+        </Link>
 
         <h2 className="font-display text-xl font-semibold text-foreground">
           Bem-vindo de volta

@@ -104,7 +104,7 @@ export function AnalysisDetailPage() {
                     <CheckCircle2 size={18} className="mt-0.5 text-primary" />
                     <div className="flex-1">
                       <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-                        Avaliação final · {analysis.final_assessment.score}/10
+                        Avaliação final · {analysis.final_assessment.score}/100
                       </p>
                       <p className="mt-1 text-sm text-foreground">
                         {analysis.final_assessment.explanation}
