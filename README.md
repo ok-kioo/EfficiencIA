@@ -1,28 +1,443 @@
-# EfficiencIA
-> Modelar processos é só o começo. Melhorá-los é o objetivo.
-## Visão
-Processos de negócio são desenhados todos os dias, mas raramente validados de forma sistemática. Diagramas ficam estáticos, regras de negócio se perdem em documentos e gargalos só aparecem quando o problema já aconteceu.
-A **EfficiencIA** nasce para fechar essa lacuna. É uma plataforma que une modelagem BPMN a análise inteligente, permitindo que qualquer pessoa — do analista de processos ao gestor de operações — desenhe, enriqueça e valide fluxos com feedback objetivo e acionável. Não é apenas um diagramador. É um ambiente onde "desenhar" e "melhorar" acontecem no mesmo ciclo.
-## Para quem é
-- **Profissionais de melhoria de processos** que precisam documentar e diagnosticar fluxos de forma rápida e padronizada.
-- **Consultores** que entregam avaliações de maturidade e otimização aos seus clientes.
-- **Times de operações** que querem transformar o conhecimento tácito em processos visíveis, medíveis e evolutivos.
-## O que a plataforma entrega
-### 1. Modelagem com propósito
-Editor BPMN completo com campos de dados enriquecidos por tarefa — responsáveis, tempos, sistemas, regras. Tudo que o processo precisa para ser compreendido, não apenas visto.
-### 2. Análise inteligente integrada
-Envie o processo para um agente de IA que avalia estrutura, lógica de decisão, regras de negócio e performance. Receba um diagnóstico com pontuação, gargalos identificados e recomendações práticas de melhoria.
-### 3. Gestão e evolução
-Projetos centralizados, histórico de análises e acompanhamento de como o processo evolui ao longo do tempo. Cada iteração gera aprendizado acumulado.
-## O fluxo de valor
-```
-Modelar o processo → Enriquecer dados → Analisar com IA → Receber diagnóstico → Iterar e evoluir
-```
-## Como começar
-1. Crie sua conta.
-2. Abra o modelador e desenhe seu primeiro fluxo (ou use o processo de exemplo).
-3. Preencha as informações de cada etapa.
-4. Clique em **Analisar com IA** e receba o diagnóstico completo.
-5. Exporte em XML, PNG ou PDF para compartilhar com seu time.
+# 🚀 EfficiencIA
+
+ Plataforma inteligente para validação, análise e otimização de fluxos de processos de negócios (BPMN) utilizando Inteligência Artificial.
+
+
 ---
-*EfficiencIA — do desenho à eficiência, em um só lugar.*
+
+## 📋 Sobre o projeto
+
+O **EfficiencIA** é uma plataforma desenvolvida para gerenciar, analisar e otimizar processos de negócios. O sistema permite que usuários criem projetos, façam upload ou modelem fluxos BPMN e submetam esses fluxos a uma análise aprofundada realizada por um agente de Inteligência Artificial.
+
+> **Arquitetura e desenvolvimento:** Este projeto foi concebido seguindo a metodologia **Spec-Driven Design (SDD)**, utilizando a plataforma **Lovable** como base para a definição e evolução das especificações. O desenvolvimento é orientado por especificações funcionais e técnicas, garantindo maior consistência entre requisitos, implementação e evolução do sistema.
+
+A plataforma combina modelagem BPMN, análise automatizada e recursos de Inteligência Artificial para ajudar profissionais a identificar problemas e oportunidades de melhoria em seus processos.
+
+### 🎯 O que o projeto faz?
+
+O EfficiencIA analisa diagramas BPMN para identificar:
+
+* Gargalos operacionais;
+* Possíveis erros de modelagem;
+* Ineficiências nos processos;
+* Oportunidades de automação;
+
+### 👥 Para quem foi desenvolvido?
+
+A plataforma foi pensada principalmente para:
+
+* Analistas de processos;
+* Analistas de negócios;
+* Gestores de operações;
+* Profissionais de BPM;
+
+### 💡 Qual problema resolve?
+
+A análise manual de processos pode ser demorada e está sujeita a erros. Em diagramas BPMN complexos, identificar gargalos, problemas de modelagem e oportunidades de melhoria pode exigir bastante tempo e conhecimento especializado.
+
+O EfficiencIA busca automatizar parte desse trabalho utilizando Inteligência Artificial para fornecer uma análise estruturada do processo.
+
+### ⭐ Principais diferenciais
+
+* Integração com agente de Inteligência Artificial através do **n8n**;
+* Análise automatizada de processos;
+* Identificação de gargalos e oportunidades de melhoria;
+* Arquitetura multitenant;
+* Isolamento de dados utilizando **Row Level Security (RLS)** no PostgreSQL.
+
+---
+
+## 🎯 Objetivos
+
+Os principais objetivos do EfficiencIA são:
+
+* Permitir a criação e edição de processos diretamente pelo navegador;
+* Identificar gargalos e oportunidades de melhoria;
+* Gerar avaliações automatizadas dos processos;
+* Integrar agentes de Inteligência Artificial através do n8n;
+
+---
+
+## ✨ Funcionalidades
+
+### BPMN
+
+* ✅ Suporte à notação BPMN através do `bpmn-js`.
+* ✅ Visualização de diagramas BPMN no navegador;
+* ✅ Manipulação e edição de diagramas BPMN;
+* ✅ Criação de projetos de processos;
+* ✅ Importação de diagramas;
+
+### Inteligência Artificial
+
+* ✅ Avaliação automatizada de processos;
+* ✅ Identificação de gargalos;
+* ✅ Sugestões de melhoria;
+* ✅ Avaliação da qualidade da modelagem;
+* ✅ Geração de insights sobre processos;
+* ✅ Integração com agente de IA através do n8n;
+* ✅ Geração de relatórios PDF;
+
+### Dados e segurança
+
+* ✅ PostgreSQL;
+* ✅ Supabase;
+* ✅ Row Level Security (RLS);
+* ✅ Isolamento de dados entre usuários;
+* ✅ Controle de acesso por plano;
+* ✅ Senhas protegidas com `bcryptjs`;
+* ✅ Tokens de autenticação utilizando JWT.
+
+---
+
+## 📸 Screenshots
+
+### Tela inicial
+<a href="https://ibb.co/bMgWZzb5"><img src="https://i.ibb.co/q3MyfkJY/Captura-de-tela-de-2026-08-14-21-02-40.png" alt="Captura-de-tela-de-2026-08-14-21-02-40" border="0"></a>
+
+### Exemplo de Projeto 
+<a href="https://ibb.co/N2TkWDQP"><img src="https://i.ibb.co/Jj3br604/Captura-de-tela-de-2026-08-14-21-02-30.png" alt="Captura-de-tela-de-2026-08-14-21-02-30" border="0"></a>
+
+
+---
+
+## 🛠️ Tecnologias utilizadas
+
+### 🎨 Front-end
+
+* [React 19](https://react.dev/)
+* [TanStack](https://tanstack.com/)
+* [Tailwind CSS v4](https://tailwindcss.com/)
+* [Radix UI](https://www.radix-ui.com/)
+* [Lucide React](https://lucide.dev/)
+* [bpmn-js](https://bpmn.io/toolkit/bpmn-js/)
+* TypeScript
+
+### ⚙️ Back-end
+
+* [Node.js](https://nodejs.org/)
+* [Express](https://expressjs.com/)
+* [TypeScript](https://www.typescriptlang.org/)
+* [Zod](https://zod.dev/)
+* [JWT](https://jwt.io/)
+* [bcryptjs](https://www.npmjs.com/package/bcryptjs)
+
+### 🗄️ Banco de Dados & Cache
+
+* **[PostgreSQL 16](https://www.postgresql.org/)** (Banco de dados relacional principal)
+* **[Redis 7](https://redis.io/)** (Cache)
+* **[Qdrant](https://qdrant.tech/)** (Banco de dados vetorial para IA)
+
+### 🔌 Inteligência Artificial & Ferramentas
+
+* **[n8n](https://n8n.io/)**: Orquestração de workflows e agentes de IA
+* **[Ollama](https://ollama.com/)**: Execução de Modelos de Linguagem (LLM) rodando localmente
+* **Docker & Docker Compose**: Gerenciamento integrado e padronizado da infraestrutura
+
+---
+
+## 📦 Pré-requisitos
+
+Antes de começar, certifique-se de ter instalado:
+
+* [Git](https://git-scm.com/)
+* [Node.js](https://nodejs.org/) `>= 20`
+* npm ou yarn
+* [Docker](https://www.docker.com/) — opcional
+* Uma instância PostgreSQL/Supabase
+* Uma instância n8n para processamento das análises de IA
+
+Verifique as versões instaladas:
+
+```bash
+git --version
+node --version
+npm --version
+docker --version
+```
+
+---
+
+# 🚀 Instalação
+
+O **EfficiencIA** pode ser executado facilmente utilizando **Docker Compose**, que sobe toda a infraestrutura necessária (Frontend, Backend, PostgreSQL, Redis, n8n, Qdrant e Ollama).
+
+## 1. Clone o repositório
+
+```bash
+git clone https://github.com/usuario/efficiencia.git
+cd efficiencia
+```
+
+## 2. Configure as variáveis de ambiente
+
+Crie o arquivo `.env` na raiz do projeto utilizando o arquivo de exemplo:
+
+```bash
+cp .env.docker.example .env
+```
+
+Edite as variáveis conforme necessário para o seu ambiente.
+
+## 3. Inicie toda a stack
+
+Suba todos os serviços com Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+> 💡 Na primeira inicialização, as **migrations do banco de dados são executadas automaticamente** quando o container do back-end inicia.
+
+## 4. Acompanhe os logs (Opcional)
+
+Para verificar se o back-end iniciou corretamente junto com o banco de dados:
+
+```bash
+docker compose logs -f backend
+```
+
+## 5. Acesse a aplicação
+
+Após todos os containers estarem em execução, os serviços estarão disponíveis em:
+
+| Serviço | URL |
+|---------|-----|
+| **Frontend** | `http://localhost:8080` |
+| **Backend** | `http://localhost:3000` |
+| **n8n** | `http://localhost:5678` |
+
+---
+
+# ⚙️ Arquitetura de Containers
+
+O arquivo `docker-compose.yml` sobe toda a infraestrutura necessária para o funcionamento da plataforma.
+
+## Serviços
+
+| Serviço | Tecnologia | Porta | Propósito |
+|---------|------------|:-----:|-----------|
+| `frontend` | React + TanStack | `8080` | Interface web da plataforma |
+| `backend` | Node.js + Express | `3000` | API principal e regras de negócio |
+| `postgres` | PostgreSQL 16 | `5432` | Banco de dados relacional |
+| `redis` | Redis 7 | `6379` | Cache e suporte ao orquestrador |
+| `n8n` | n8n | `5678` | Orquestração dos agentes de IA |
+| `qdrant` | Qdrant | `6333` / `6334` | Banco vetorial para embeddings |
+| `ollama` | Ollama | `11434` | Execução local de modelos LLM |
+
+---
+
+# 🔌 Configuração do n8n
+
+O fluxo de análise utiliza o n8n para receber as solicitações enviadas pelo back-end, processar os dados do processo BPMN, interagir com o **Ollama** e, quando necessário, consultar informações armazenadas no **Qdrant**.
+
+## 1. Acesse o n8n
+
+Com a stack Docker em execução, acesse:
+
+```text
+http://localhost:5678
+```
+
+Na primeira execução, o n8n solicitará a criação da conta de administrador.
+
+## 2. Importe o workflow
+
+1. Acesse **Workflows**;
+2. Selecione **Import from File**;
+3. Escolha o arquivo [n8n/efficiencIA.json](n8n/efficiencIA.json);
+4. Verifique as credenciais e configurações utilizadas pelo workflow;
+5. Salve o workflow.
+
+## 3. Configure o Ollama
+
+O n8n utiliza o **Ollama** para executar os modelos de linguagem localmente.
+
+O serviço fica disponível dentro da rede Docker através de:
+
+```text
+http://ollama:11434
+```
+
+Para verificar se o Ollama está funcionando:
+
+```bash
+docker compose logs -f ollama
+```
+
+Você também pode verificar os modelos disponíveis:
+
+```bash
+docker exec -it ollama ollama list
+```
+
+Caso seja necessário baixar um modelo:
+
+```bash
+docker exec -it ollama ollama pull <nome-do-modelo>
+```
+
+> ⚠️ O modelo utilizado pelo workflow deve estar disponível no container do Ollama antes de executar uma análise.
+
+## 5. Configure o Qdrant
+
+O **Qdrant** é utilizado como banco de dados vetorial para armazenamento e recuperação de embeddings utilizados durante o processo de análise.
+
+O serviço fica disponível na rede Docker através de:
+
+```text
+http://qdrant:6333
+```
+
+A interface HTTP pode ser acessada localmente através de:
+
+```text
+http://localhost:6333
+```
+
+## 6. Ative o workflow
+
+Depois de configurar o webhook, Ollama e Qdrant:
+
+1. Abra o workflow de análise BPMN;
+2. Verifique as credenciais e variáveis utilizadas;
+3. Verifique o nó de Webhook;
+4. Verifique a conexão com o Ollama;
+5. Verifique a conexão com o Qdrant;
+6. Salve o workflow;
+7. Ative o workflow.
+
+
+> ⚠️ **Importante:** não versione credenciais, tokens, senhas ou chaves utilizadas pelo n8n, Ollama, Qdrant ou qualquer outro serviço.
+
+---
+
+# 📖 Como usar
+
+Depois de rodar o **docker-compose**, acesse:
+
+```text
+http://localhost:8080
+```
+
+## 🔄 Fluxo básico
+
+1. Cadastre-se ou faça login com seu e-mail;
+2. Opcionalmente, utilize o login com Google;
+3. Crie um novo projeto BPMN;
+4. Importe ou desenhe seu diagrama;
+5. Configure o processo conforme necessário;
+6. Solicite uma **Análise IA**;
+7. O back-end enviará os dados do processo para o agente através do n8n;
+8. O agente realizará a análise;
+9. O resultado será processado pelo back-end;
+10. Visualize os gargalos, sugestões e avaliação do processo.
+
+> 💡 O recurso de análise por Inteligência Artificial é destinado aos usuários que possuem acesso ao plano correspondente.
+
+---
+
+# 📁 Estrutura do projeto
+
+O EfficiencIA utiliza uma estrutura de **monorepo**, mantendo front-end e back-end no mesmo repositório.
+
+```text
+efficiencia/
+├── docker-compose.yml        # Orquestração completa da stack local
+├── .env.docker.example       # Modelo de variáveis globais do compose
+├── backend/                  # API Express, Node.js e scripts
+│   ├── migrations/           # Esquemas SQL e RLS do Postgres
+│   ├── src/                  # Controllers, Services e Repositories
+│   ├── Dockerfile
+│   └── package.json
+└── frontend/                 # Interface React / TanStack
+    ├── src/
+    ├── Dockerfile
+    └── package.json
+```
+
+---
+
+# 📄 Licença
+
+Este projeto está licenciado sob a
+[GNU Affero General Public License v3.0 ou posterior](https://www.gnu.org/licenses/agpl-3.0.html).
+
+Consulte o arquivo [`LICENSE`](LICENSE) para obter o texto completo da licença.
+
+---
+
+# 🤝 Contribuindo
+
+Contribuições são bem-vindas!
+
+Antes de contribuir, certifique-se de que suas alterações estão de acordo com os padrões utilizados pelo projeto especificados no arquivo [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Convenção de commits
+
+Este projeto utiliza [Conventional Commits](https://www.conventionalcommits.org/).
+
+## Licença das contribuições
+
+Ao contribuir com este projeto, você concorda que suas contribuições
+serão disponibilizadas sob os termos da GNU Affero General Public
+License v3.0 ou posterior.
+
+---
+
+# ⭐ Apoie o projeto
+
+Se o **EfficiencIA** foi útil para você, considere apoiar o projeto:
+
+* ⭐ Dê uma estrela no repositório;
+* 🐛 Reporte problemas;
+* 💡 Sugira novas funcionalidades;
+* 🤝 Contribua com código;
+* 📢 Compartilhe o projeto;
+* 📚 Ajude a melhorar a documentação.
+
+Toda contribuição é bem-vinda!
+
+**Obrigado por apoiar o EfficiencIA! ❤️**
+
+---
+
+# 📞 Suporte
+
+Encontrou um problema?
+
+Abra uma [Issue](https://github.com/efficiencia/efficiencia/issues) descrevendo, sempre que possível:
+
+1. O problema encontrado;
+2. Como reproduzi-lo;
+3. O comportamento esperado;
+4. O comportamento atual;
+5. Logs ou mensagens de erro;
+6. Sistema operacional;
+7. Versão do Node.js;
+8. Versão do projeto;
+9. Passos necessários para reproduzir o problema.
+
+---
+
+# 📚 Documentação
+
+A documentação do projeto pode ser organizada nos seguintes recursos:
+
+* [Documentação principal](README.md)
+* [Guia de contribuição](CONTRIBUTING.md)
+* [Licença](LICENSE)
+
+---
+
+<div align="center">
+
+### 🚀 EfficiencIA
+
+**Transformando processos em decisões inteligentes.**
+
+<br>
+
+⭐ **Se gostou do projeto, deixe uma estrela!**
+
+</div>

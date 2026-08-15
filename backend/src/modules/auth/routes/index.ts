@@ -2,7 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../../../infra/authMiddleware.js";
 import {
   forgotPasswordHandler,
-  googleHandler,
+  /* googleHandler, */
   loginHandler,
   meHandler,
   resetPasswordHandler,
@@ -11,7 +11,7 @@ import {
 
 const router = Router();
 
-router.post("/google", googleHandler);
+/* router.post("/google", googleHandler); */
 router.post("/signup", signupHandler);
 router.post("/login", loginHandler);
 router.post("/forgot-password", forgotPasswordHandler);

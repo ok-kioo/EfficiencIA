@@ -3,26 +3,26 @@ import {
   emailLoginSchema,
   emailSignupSchema,
   forgotPasswordSchema,
-  googleLoginSchema,
+  /* googleLoginSchema ,*/
   resetPasswordSchema,
 } from "../domain/entity/Auth.js";
 import {
   getCurrentUser,
   loginWithEmail,
-  loginWithGoogle,
+  /* loginWithGoogle ,*/
   requestPasswordReset,
   resetPassword,
   signupWithEmail,
 } from "../service/authService.js";
 
-export async function googleHandler(req: Request, res: Response, next: NextFunction) {
+/* export async function googleHandler(req: Request, res: Response, next: NextFunction) {
   try {
     const { idToken } = googleLoginSchema.parse(req.body);
     res.json(await loginWithGoogle(idToken));
   } catch (err) {
     next(err);
   }
-}
+} */
 
 export async function signupHandler(req: Request, res: Response, next: NextFunction) {
   try {

@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-export const googleLoginSchema = z.object({
+/* export const googleLoginSchema = z.object({
   idToken: z.string().min(10),
-});
+}); */
 
 export const emailSignupSchema = z.object({
   email: z.string().email(),

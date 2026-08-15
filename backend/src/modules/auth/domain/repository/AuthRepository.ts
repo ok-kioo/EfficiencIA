@@ -9,9 +9,9 @@ export interface GoogleProfile {
 
 export interface AuthRepository {
   findByEmail(email: string): Promise<UserRecord | null>;
-  upsertGoogleUser(
+  /* upsertGoogleUser(
     profile: GoogleProfile,
-  ): Promise<{ user: UserRecord; isNew: boolean }>;
+  ): Promise<{ user: UserRecord; isNew: boolean }>; */
   createEmailUser(input: {
     email: string;
     passwordHash: string;

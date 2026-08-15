@@ -3,8 +3,8 @@ import { useNavigate, Link } from "@tanstack/react-router";
 import { User, Mail, Lock, AlertCircle, CheckCircle, Loader } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import type { SignupRequest } from "../../@types/user";
-import { GoogleButton } from "./GoogleButton";
-
+/* import { GoogleButton } from "./GoogleButton";
+ */
 export function SignupForm() {
   const navigate = useNavigate();
   const { signup, isLoading, error } = useAuth();
@@ -121,7 +121,7 @@ export function SignupForm() {
         )}
       </button>
 
-      <GoogleButton />
+      {/* <GoogleButton /> */}
 
       <p className="text-center text-xs text-muted-foreground">
         Já tem uma conta?{" "}

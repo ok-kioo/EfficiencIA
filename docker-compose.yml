@@ -9,37 +9,16 @@
 # As migrations rodam automaticamente quando o backend sobe.
 
 services:
-  postgres:
-    image: postgres:16
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-efficiencia}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-efficiencia}
-      POSTGRES_DB: ${POSTGRES_DB:-efficiencia}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-efficiencia}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   backend:
     build:
       context: ./backend
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
       PORT: 3000
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-efficiencia}:${POSTGRES_PASSWORD:-efficiencia}@postgres:5432/${POSTGRES_DB:-efficiencia}
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env (use openssl rand -hex 32)}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://n8n:5678/webhook/assist-bpmn}
       N8N_TIMEOUT_MS: ${N8N_TIMEOUT_MS:-60000}
     ports:
@@ -56,7 +35,6 @@ services:
       - backend
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
-      VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     ports:
       - "8080:8080"
     volumes:

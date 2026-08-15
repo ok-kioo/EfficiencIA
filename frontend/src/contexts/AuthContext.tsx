@@ -13,7 +13,7 @@ interface AuthContextType {
   error: string | null;
   login: (data: LoginRequest) => Promise<void>;
   signup: (data: SignupRequest) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<void>;
+/*   loginWithGoogle: (idToken: string) => Promise<void>;*/
   logout: () => void;
   setUser: (user: User) => void;
   clearError: () => void;
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error,
     login,
     signup,
-    loginWithGoogle,
+/*     loginWithGoogle,*/
     logout,
     setUser,
     clearError: () => setError(null),

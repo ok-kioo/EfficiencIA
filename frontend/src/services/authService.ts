@@ -31,11 +31,11 @@ export const authService = {
     return res;
   },
 
-  async loginWithGoogle(idToken: string): Promise<AuthResponse> {
+  /* async loginWithGoogle(idToken: string): Promise<AuthResponse> {
     const { data: res } = await api.post<AuthResponse>("/api/auth/google", { idToken });
     persist(res);
     return res;
-  },
+  }, */
 
   async me(): Promise<User> {
     const { data } = await api.get<{ user: User }>("/api/auth/me");

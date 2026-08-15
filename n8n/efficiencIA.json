@@ -1,0 +1,332 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Upload your data to test RAG",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload your file(s)",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf, .csv",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -256,
+        352
+      ],
+      "id": "e5f52925-d726-4236-96bc-1a62ccc7a4bb",
+      "name": "Upload your file here",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        304,
+        480
+      ],
+      "id": "a84a6b82-4347-4e54-9171-c3133f1098bc",
+      "name": "Embeddings Ollama"
+    },
+    {
+      "parameters": {
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -80,
+        512
+      ],
+      "id": "fbdaff8c-52ec-443c-b0e6-606d9061b088",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.content }}",
+        "options": {
+          "responseCode": 200,
+          "enableStreaming": true
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        336,
+        -48
+      ],
+      "id": "1b05710a-fcad-4c2f-957c-f1a31feaad77",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 50,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        656
+      ],
+      "id": "a1ea753f-275d-4d3f-b923-c2afea1e6339",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "bpmn_knowledge",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        352
+      ],
+      "id": "8f9109cf-9402-43bf-a56d-aff728d357e3",
+      "name": "Qdrant Vector Store"
+    	},
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "FERRAMENTA OBRIGATÓRIA DE CONHECIMENTO ESPECIALIZADO BPMN E ANÁLISE ORGANIZACIONAL\n\nATENÇÃO:\n\nEsta é a principal fonte de conhecimento técnico disponível para análise de processos BPMN.\n\nAntes de produzir qualquer análise, recomendação, diagnóstico, identificação de gargalos, avaliação de modelagem ou inferência organizacional, utilize esta ferramenta para recuperar contexto especializado.\n\nUma análise realizada sem consultar esta ferramenta deve ser considerada potencialmente incompleta.\n\nOBJETIVO DA FERRAMENTA\n\nEsta ferramenta fornece acesso a uma base vetorial especializada contendo conhecimento técnico, acadêmico e operacional sobre:\n\n* BPMN 2.0\n* Business Process Management (BPM)\n* Workflow Systems\n* Process Mining\n* Process Intelligence\n* Teoria das Filas\n* Dinâmica Organizacional\n* Engenharia de Processos\n* Arquitetura de Processos\n* Governança Operacional\n\nA base funciona como memória semântica especializada e contém conhecimento que pode não estar presente diretamente na descrição do processo analisado.\n\nCONTEÚDO ARMAZENADO\n\nOs documentos armazenados incluem:\n\n* semântica BPMN\n* eventos BPMN\n* tarefas BPMN\n* subprocessos\n* gateways exclusivos\n* gateways paralelos\n* gateways inclusivos\n* gateways baseados em eventos\n* padrões BPMN\n* anti-patterns BPMN\n* modelagem inadequada de processos\n* erros de sincronização\n* erros de paralelização\n* gargalos organizacionais\n* gargalos operacionais\n* gargalos emergentes\n* propagação de atrasos\n* dependências críticas\n* filas organizacionais\n* centralização operacional\n* baixa escalabilidade\n* resource contention\n* utilização compartilhada de recursos\n* throughput\n* lead time\n* cycle time\n* retrabalho\n* handoffs\n* filas de aprovação\n* processos de validação\n* riscos operacionais\n* riscos de sincronização\n* padrões de automação\n* melhoria contínua\n* indicadores de desempenho\n* process mining\n* descoberta de processos\n* análise de conformidade\n* análise de eficiência operacional\n\nCOMO A BUSCA FUNCIONA\n\nA recuperação é SEMÂNTICA.\n\nA busca NÃO depende exclusivamente de palavras iguais.\n\nA ferramenta identifica relações conceituais, estruturais e organizacionais.\n\nExemplo:\n\nConsulta:\n\n\"aprovação centralizada causando atrasos\"\n\nPode recuperar:\n\n* approval bottlenecks\n* queue formation\n* resource contention\n* sequential workflow limitations\n* low parallelism\n* synchronization delays\n\nmesmo que essas expressões não apareçam literalmente na consulta.\n\nCOMO UTILIZAR\n\nAo receber um processo BPMN:\n\n1. Analise a estrutura do grafo.\n2. Identifique possíveis pontos críticos.\n3. Gere consultas semânticas relacionadas aos elementos encontrados.\n4. Execute esta ferramenta.\n5. Analise os documentos recuperados.\n6. Utilize o conteúdo recuperado para fundamentar a análise.\n\nCONSULTAS RECOMENDADAS\n\nQuando encontrar:\n\nTarefas manuais:\n\n* manual task bottleneck\n* human dependency\n* approval delays\n\nGateways exclusivos:\n\n* decision bottleneck\n* branching risk\n* routing complexity\n\nGateways paralelos:\n\n* synchronization bottleneck\n* parallel gateway\n* waiting state\n* resource contention\n\nValidações demoradas:\n\n* queue formation\n* validation bottleneck\n* throughput reduction\n\nMúltiplas atividades do mesmo responsável:\n\n* operational centralization\n* workload concentration\n* resource saturation\n\nLoops:\n\n* rework cycle\n* infinite loop risk\n* process inefficiency\n\nDependências entre subprocessos:\n\n* critical dependency\n* process coupling\n* delay propagation\n\nPRIORIDADES DE RECUPERAÇÃO\n\nPriorize conhecimento relacionado a:\n\n* comportamento sistêmico\n* relações causais\n* gargalos emergentes\n* dependências críticas\n* acoplamento estrutural\n* propagação de atrasos\n* sincronização\n* filas organizacionais\n* centralização operacional\n* paralelismo\n* uso compartilhado de recursos\n* throughput\n* lead time\n* escalabilidade operacional\n\nREGRA DE ANÁLISE\n\nNunca baseie a análise apenas nos nomes das tarefas.\n\nConsidere sempre:\n\n* topologia do grafo\n* fluxo de controle\n* gateways\n* ciclos\n* paralelismo\n* sincronização\n* merges\n* splits\n* dependências entre atividades\n* distribuição de responsabilidades\n* comportamento organizacional implícito\n\nUSO OBRIGATÓRIO DOS RESULTADOS\n\nOs documentos recuperados devem ser utilizados como:\n\n* fundamentação técnica\n* memória organizacional\n* evidência contextual\n* suporte para inferências\n* validação de hipóteses\n* apoio para identificação de gargalos\n\nA resposta final deve combinar:\n\n* estrutura BPMN recebida\n* documentos recuperados\n* métricas operacionais disponíveis\n* relações causais organizacionais\n\nO objetivo é produzir análises profundas, fundamentadas e orientadas por conhecimento especializado, evitando avaliações superficiais baseadas apenas na leitura do fluxo.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "bpmn_knowledge",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        192
+      ],
+      "id": "830497a5-064a-4eff-8821-62ed74af1163",
+      "name": "Retrieve"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "assist-bpmn",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -256,
+        -48
+      ],
+      "id": "8128a7b5-dbd4-4a39-8959-486003dac4d0",
+      "name": "Webhook",
+      "webhookId": ""
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Nome do processo:\n{{ $json.body.processName }}\n\nObjetivo da análise:\n{{ $json.body.objective }}\n\nGrafo do processo:\n{{ JSON.stringify($json.body.graph) }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Você é um especialista em BPMN 2.0, BPM, análise de processos e otimização operacional.\n\nSua função é analisar processos modelados em BPMN representados como grafos JSON.\n\nVocê receberá:\n\n* processName\n* objective\n* graph.nodes\n* graph.edges\n* staticAnalysis (opcional)\n* documentos de apoio recuperados por busca vetorial (quando disponíveis)\n\nINSTRUÇÕES DE ANÁLISE\n\nAnalise o processo em quatro níveis:\n\n1. Estrutura do fluxo\n\n* Verifique se existe pelo menos um evento de início e um evento de fim.\n* Identifique nós sem entrada ou sem saída.\n* Identifique tarefas isoladas.\n* Identifique caminhos mortos (dead ends).\n* Identifique ciclos ou loops potencialmente infinitos.\n* Verifique se gateways possuem caminhos válidos de entrada e saída.\n* Verifique se gateways exclusivos possuem condições claras.\n\n2. Eficiência operacional\n\n* Identifique atividades com tempo elevado.\n* Identifique atividades manuais suscetíveis a atraso.\n* Identifique responsáveis que concentram muitas atividades.\n* Identifique possíveis gargalos.\n* Identifique oportunidades de paralelização.\n\n3. Qualidade da modelagem BPMN\n\n* Verifique uso inadequado de gateways.\n* Verifique eventos ausentes.\n* Verifique fluxos incompletos.\n* Verifique tarefas sem continuidade.\n* Verifique ausência de tratamento para exceções ou rejeições.\n\n4. Melhoria contínua\n\n* Sugira automações.\n* Sugira simplificações.\n* Sugira validações adicionais.\n* Sugira documentação complementar.\n* Sugira indicadores de desempenho (KPIs) quando relevante.\n\nUSO DA ANÁLISE ESTÁTICA\n\nSe o campo staticAnalysis estiver presente:\n\n* Considere todos os problemas encontrados.\n* Utilize essas informações como evidência adicional.\n* Não ignore problemas reportados pelo mecanismo de análise estática.\n* Caso discorde de algum resultado, explique o motivo.\n\nUSO DA BASE DE CONHECIMENTO\n\nQuando informações adicionais forem necessárias:\n\n* Consulte a ferramenta de busca vetorial.\n* Utilize os documentos recuperados apenas como apoio.\n* Não limite sua análise apenas ao conteúdo recuperado.\n* Priorize sempre a estrutura do processo recebido.\n\nCRITÉRIOS DE SEVERIDADE\n\nhigh\n\n* bloqueia o fluxo\n* pode causar falha operacional\n* pode gerar retrabalho significativo\n* gera risco elevado de atraso\n\nmedium\n\n* reduz eficiência\n* aumenta custo operacional\n* dificulta manutenção\n\nlow\n\n* melhoria recomendada\n* problema de documentação\n* problema de padronização\n\nPONTUAÇÃO FINAL\n\nCalcule uma nota entre 0 e 100 considerando:\n\n* Correção da modelagem BPMN\n* Clareza do fluxo\n* Eficiência operacional\n* Ausência de gargalos\n* Ausência de inconsistências\n\nGuia:\n\n90-100 = excelente\n70-89 = bom\n50-69 = necessita melhorias\n0-49 = crítico\n\nIMPORTANTE\n\n* Nunca retorne texto fora do JSON.\n* Nunca retorne markdown.\n* Nunca explique o raciocínio interno.\n* Nunca retorne definições de ferramentas.\n* Nunca retorne schemas de ferramentas.\n* Sempre retorne JSON válido.\n\nFormato obrigatório:\n\n{\n\"summary\": \"resumo geral da análise\",\n\"bottlenecks\": [],\n\"modelingIssues\": [],\n\"improvementSuggestions\": [],\n\"finalAssessment\": {\n\"score\": 0,\n\"explanation\": \"\"\n}\n}\n\nUSO OBRIGATÓRIO DA BASE VETORIAL (QDRANT)\n\nVocê possui acesso a uma ferramenta conectada ao banco vetorial Qdrant configurada no fluxo n8n.\n\nNome da ferramenta:\nRetrieve\n\nFunção da ferramenta:\nRecuperar documentos técnicos armazenados na coleção vetorial BPMN para apoiar a análise do processo.\n\nREGRA OBRIGATÓRIA\n\nAntes de produzir qualquer análise final, você DEVE executar a ferramenta Retrieve pelo menos uma vez.\n\nA análise NÃO pode ser realizada apenas com conhecimento próprio.\n\nO contexto recuperado pelo Qdrant deve ser utilizado como fonte complementar obrigatória.\n\nFLUXO OBRIGATÓRIO DE RACIOCÍNIO\n\n1. Receba o processo BPMN.\n2. Analise:\n\n   * nodes\n   * edges\n   * responsáveis\n   * tempos estimados\n   * gateways\n   * paralelismo\n   * possíveis gargalos\n3. Gere uma consulta semântica baseada no processo recebido.\n4. Execute a ferramenta Retrieve.\n5. Analise os documentos retornados.\n6. Cruze:\n\n   * estrutura BPMN recebida\n   * conhecimento recuperado do Qdrant\n   * possíveis padrões organizacionais\n   * possíveis anti-patterns\n7. Somente após a recuperação dos documentos produza a resposta final.\n\nREGRAS DE RECUPERAÇÃO\n\nA consulta enviada ao Retrieve deve considerar:\n\n* tipo dos gateways\n* tarefas manuais\n* tempos elevados\n* centralização de responsáveis\n* possíveis filas\n* gargalos\n* sincronização\n* throughput\n* lead time\n* paralelismo\n* loops\n* dependências críticas\n* tratamento de exceções\n\nEXEMPLOS\n\nSe o processo possuir:\n\n* exclusive gateways\n\npesquise também:\n\nexclusive gateway validation\ndecision bottleneck\nbranching process\n\nSe possuir:\n\n* tarefas manuais\n\npesquise também:\n\nmanual task delays\nhuman bottlenecks\napproval workflow\n\nSe possuir:\n\n* validações demoradas\n\npesquise também:\n\nvalidation bottleneck\nqueue formation\nresource contention\n\nOBRIGAÇÃO\n\nNunca responda diretamente após receber o BPMN.\n\nSempre execute Retrieve antes da análise.\n\nSe nenhuma informação relevante for encontrada:\n\n* continue a análise normalmente\n* mas considere que a ferramenta foi executada\n\nCRITÉRIO DE QUALIDADE\n\nUma análise é considerada incompleta se a ferramenta Retrieve não tiver sido utilizada.\n\nA estrutura BPMN deve ser sempre combinada com o conhecimento recuperado do Qdrant.\n\nA resposta final deve refletir tanto:\n\n* a estrutura do processo recebido\n* quanto o contexto recuperado pela ferramenta vetorial"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -32,
+        -48
+      ],
+      "id": "3d49fa2b-9dde-49c6-ada6-69a858efaa9c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\"summary\": \"resumo geral da análise\",\n\"bottlenecks\": [],\n\"modelingIssues\": [],\n\"improvementSuggestions\": [],\n\"finalAssessment\": {\n\"score\": 0,\n\"explanation\": \"\"\n}\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        192
+      ],
+      "id": "53d5c709-0796-43df-bff0-05dcaf3b15d4",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.6,
+      "position": [
+        32,
+        192
+      ],
+      "id": "9557499d-2f1f-4476-a9eb-c71da28cb6ef",
+      "name": "Redis Chat Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -176,
+        160
+      ],
+      "id": "1bdfa87f-8553-4c66-b563-19537e6dfb74",
+      "name": "OpenAI Chat Model"
+    }
+  ],
+  "connections": {
+    "Upload your file here": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Retrieve",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "eb7d124d257c376e02a336fbc50b6d37c8d909e299dec1bcb3695f4ab8d547bd"
+  }
+}

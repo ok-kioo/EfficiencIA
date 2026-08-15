@@ -46,7 +46,7 @@ export interface AuthServiceDeps {
 export function makeAuthService(deps: AuthServiceDeps) {
   const { authRepo, passwordResetRepo, onUserCreated } = deps;
 
-  async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
+  /* async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
     const profile = await verifyGoogleIdToken(idToken);
     const { user, isNew } = await authRepo.upsertGoogleUser({
       sub: profile.sub,
@@ -56,7 +56,7 @@ export function makeAuthService(deps: AuthServiceDeps) {
     });
     if (isNew && onUserCreated) await onUserCreated(user.id);
     return toResponse(user);
-  }
+  } */
 
   async function signupWithEmail(
     email: string,
@@ -135,12 +135,12 @@ export function makeAuthService(deps: AuthServiceDeps) {
   }
 
   return {
-    loginWithGoogle,
+    /* loginWithGoogle,*/
     signupWithEmail,
     loginWithEmail,
     getCurrentUser,
     requestPasswordReset,
-    resetPassword,
+    resetPassword
   };
 }
 
@@ -150,7 +150,7 @@ const defaultService = makeAuthService({
   onUserCreated: createWelcomeProject,
 });
 
-export const loginWithGoogle = defaultService.loginWithGoogle;
+/* export const loginWithGoogle = defaultService.loginWithGoogle;*/
 export const signupWithEmail = defaultService.signupWithEmail;
 export const loginWithEmail = defaultService.loginWithEmail;
 export const getCurrentUser = defaultService.getCurrentUser;

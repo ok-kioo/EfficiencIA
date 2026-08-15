@@ -14,30 +14,6 @@ export class AuthPgRepository implements AuthRepository {
     return rows[0] ?? null;
   }
 
-  async upsertGoogleUser(
-    profile: GoogleProfile,
-  ): Promise<{ user: UserRecord; isNew: boolean }> {
-    const existing = await query<{ id: string }>(
-      "SELECT id FROM users WHERE email = $1",
-      [profile.email],
-    );
-    const isNew = !existing.rowCount;
-    const { rows } = await query<UserRecord>(
-      `
-      INSERT INTO users (google_sub, email, name, picture)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (email) DO UPDATE
-        SET google_sub = EXCLUDED.google_sub,
-            name       = COALESCE(users.name, EXCLUDED.name),
-            picture    = EXCLUDED.picture,
-            updated_at = NOW()
-      RETURNING ${USER_COLS}
-      `,
-      [profile.sub, profile.email, profile.name, profile.picture ?? null],
-    );
-    return { user: rows[0], isNew };
-  }
-
   async createEmailUser(input: {
     email: string;
     passwordHash: string;
